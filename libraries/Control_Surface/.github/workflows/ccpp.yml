@@ -1,0 +1,19 @@
+name: CI Tests
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: sudo ./scripts/install-gtest.sh Debug /usr/local
+    - name: Configure
+      run: cmake -S. --preset ci
+    - name: Build
+      run: cmake --build --preset ci
+    - name: Test
+      run: ctest --preset ci
