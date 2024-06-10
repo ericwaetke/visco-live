@@ -3,22 +3,38 @@
 #include <Control_Surface.h>  // Include the library
  
 USBMIDI_Interface midi;  // Instantiate a MIDI Interface to use
-CCPotentiometer pot0 { A0, MIDI_CC::General_Purpose_Controller_1 };
-CCPotentiometer pot1 { A1, MIDI_CC::General_Purpose_Controller_2 };
-CCPotentiometer pot2 { A2, MIDI_CC::General_Purpose_Controller_3 };
-CCPotentiometer pot3 { A3, MIDI_CC::General_Purpose_Controller_4 };
-CCPotentiometer pot4 { A4, MIDI_CC::General_Purpose_Controller_5 };
+CCPotentiometer pot0 { POT0, MIDI_CC::General_Purpose_Controller_1 };
+CCPotentiometer pot1 { POT1, MIDI_CC::General_Purpose_Controller_2 };
+CCPotentiometer pot2 { POT2, MIDI_CC::General_Purpose_Controller_3 };
+CCPotentiometer pot3 { POT3, MIDI_CC::General_Purpose_Controller_4 };
+CCPotentiometer pot4 { POT4, MIDI_CC::General_Purpose_Controller_5 };
+
+#define POT0 A0
+#define POT1 A1
+#define POT2 A2
+#define POT3 A3
+#define POT4 A4
+#define FADER_POT A5
+
+#define FADER_FORWARD 7       // Motor 1 - Forward
+#define FADER_REVERSE 8       // Motor 1 - Reverse
+#define FADER_SPEED 6    // Enable pin for both motors (PWM enabled)
+
+#define BUTTON0 2
+#define BUTTON1 3
+#define BUTTON2 4
+#define BUTTON3 5
+
+#define LED0 12
+#define LED1 11
+#define LED2 10
+#define LED3 9
 
 Bank<4> bank(1); // 3 banks with an offset of 4 tracks per bank (a = 4)
  
 Bankable::CCPotentiometer fader[] {
-    {bank, A5, 1}, // base address 1 (b = 1)
+    {bank, FADER_POT, 1}, // base address 1 (b = 1)
 };
-
-#define IN1 7       // Motor 1 - Forward
-#define IN2 8       // Motor 1 - Reverse
-#define ENABLE 6    // Enable pin for both motors (PWM enabled)
-#define FADER_POT A5
 
 void setPWMPrescaler(uint8_t prescaler) {
   TCCR1B = (TCCR1B & B11111000) | prescaler;
@@ -55,25 +71,29 @@ int lit = 0;
 void loop() {
   Control_Surface.loop();
 
-  Serial.println(bank.getSelection());
+  Serial.println(fader[bank.getSelection()].getRawValue());
 
   // Check if the button is pressed
   if (digitalRead(2) == LOW) {
     lit = 12;
     bank.select(0);
-    moveTo(fader[0].getValue());
+    // moveTo(fader[0].getValue());
+    Serial.println(fader[0].getValue());
   } else if (digitalRead(3) == LOW) {
     lit = 11;
     bank.select(1);
-    moveTo(fader[1].getValue());
+    // moveTo(fader[1].getValue());
+    Serial.println(fader[1].getValue());
   } else if (digitalRead(4) == LOW) {
     lit = 10;
     bank.select(2);
-    moveTo(fader[2].getValue());
+    // moveTo(fader[2].getValue());
+    Serial.println(fader[2].getValue());
   } else if (digitalRead(5) == LOW) {
     lit = 9;
     bank.select(3);
-    moveTo(fader[3].getValue());
+    // moveTo(fader[3].getValue());
+    Serial.println(fader[3].getValue());
   }
 
   digitalWrite(9, LOW);
