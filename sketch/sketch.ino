@@ -9,8 +9,12 @@
 #define POT4 A4
 #define FADER_POT A5
 
-#define FADER_FORWARD 7       // Motor 1 - Forward — RED, closer to Cutout
-#define FADER_REVERSE 8       // Motor 1 - Reverse — WHITE, further away from Cutout
+#define FADER_FORWARD 7      
+// Motor 1 - Reverse — WHITE, further away from Cutout
+
+#define FADER_REVERSE 8       
+ // Motor 1 - Forward — RED, closer to Cutout
+
 #define FADER_SPEED 6    // Enable pin for both motors (PWM enabled)
 
 #define BUTTON0 2
@@ -70,63 +74,29 @@ void setup() {
 
 // Int showing what LED/Track is currently selected
 int currentTrack = 0;
-int lit = 0;
+int lit = LED0;
 
-int faderValues[4];
+int faderValues[4] = {0, 0, 0, 0};
 
 void loop() {
   Control_Surface.loop();
 
-  Serial.println("---");
-  Serial.println(faderValues[0]);
-  Serial.println(faderValues[1]);
-  Serial.println(faderValues[2]);
-  Serial.println(faderValues[3]);
+  // Serial.println("---");
+  // Serial.println(faderValues[0]);
+  // Serial.println(faderValues[1]);
+  // Serial.println(faderValues[2]);
+  // Serial.println(faderValues[3]);
 
   // Check if the button is pressed
+  // Check if any button is pressed
   if (digitalRead(BUTTON0) == LOW) {
-    faderValues[currentTrack] = fader[0].getValue();
-    
-    currentTrack = 0;
-
-    Serial.print("Previous Track Pos: ");
-    Serial.println(faderValues[currentTrack]);
-
-    bank.select(currentTrack);
-    lightLED(currentTrack);
-  } 
-  else if (digitalRead(BUTTON1) == LOW) {
-    faderValues[currentTrack] = fader[0].getValue();
-    
-    currentTrack = 1;
-
-    Serial.print("Previous Track Pos: ");
-    Serial.println(faderValues[currentTrack]);
-
-    bank.select(currentTrack);
-    lightLED(currentTrack);
-  } 
-  else if (digitalRead(BUTTON2) == LOW) {
-    faderValues[currentTrack] = fader[0].getValue();
-    
-    currentTrack = 2;
-    
-    Serial.print("Previous Track Pos: ");
-    Serial.println(faderValues[currentTrack]);
-
-    bank.select(currentTrack);
-    lightLED(currentTrack);
-  } 
-  else if (digitalRead(BUTTON3) == LOW) {
-    faderValues[currentTrack] = fader[0].getValue();
-    
-    currentTrack = 3;
-    
-    Serial.print("Previous Track Pos: ");
-    Serial.println(faderValues[currentTrack]);
-
-    bank.select(currentTrack);
-    lightLED(currentTrack);
+    updateTrack(0);
+  } else if (digitalRead(BUTTON1) == LOW) {
+    updateTrack(1);
+  } else if (digitalRead(BUTTON2) == LOW) {
+    updateTrack(2);
+  } else if (digitalRead(BUTTON3) == LOW) {
+    updateTrack(3);
   }
 
   digitalWrite(LED0, LOW);
@@ -136,6 +106,25 @@ void loop() {
 
   // Turn on the LED at the current position
   digitalWrite(lit, HIGH);
+}
+
+void updateTrack(int trackId) {
+  faderValues[currentTrack] = fader[0].getValue();
+  currentTrack = trackId;
+
+  bank.select(currentTrack);
+  lightLED(currentTrack);
+  switchToTrack(currentTrack);
+}
+
+void switchToTrack(int trackId) {
+  Serial.println("Switching to Track: " + String(trackId));
+
+  if (faderValues[trackId]) {
+    moveTo(faderValues[trackId] * 8);
+  } else {
+    Serial.println("no value");
+  }
 }
 
 void boot() {
@@ -158,17 +147,7 @@ void boot() {
 }
 
 void lightLED(int track) {
-  lit = 9 + track;
-  // switch (track) {
-  //   case 0:
-  //     lit = 12;
-  //   case 1:
-  //     lit = 11;
-  //   case 2:
-  //     lit = 10;
-  //   case 3:
-  //     lit = 9;
-  // }
+  lit = LED0 + track;
 }
 
 void selected_led(int selected) {
@@ -202,23 +181,29 @@ void selected_led(int selected) {
 
 // Function to move the fader to a specified position
 void moveTo(int targetPosition) {
+  Serial.println("Moving fader to " + String(targetPosition));
   int currentPosition = analogRead(FADER_POT);
   
   // Move the fader until it reaches the target position
-  while (abs(targetPosition - currentPosition) > 5) { // Allowing some tolerance
+  while (abs(targetPosition - currentPosition) > 50) { // Allowing some tolerance
     int distance = abs(targetPosition - currentPosition);
     int speed = map(distance, 0, 1023, 170, 220); // Proportional control
 
     if (targetPosition > currentPosition) {
+      Serial.print("Moving Up ");
       // Move fader up
       digitalWrite(FADER_FORWARD, HIGH);
       digitalWrite(FADER_REVERSE, LOW);
     } else {
+      Serial.print("Moving Down ");
       // Move fader down
       digitalWrite(FADER_FORWARD, LOW);
       digitalWrite(FADER_REVERSE, HIGH);
     }
     analogWrite(FADER_SPEED, speed);
+
+     // Debug outputSerial.print("Current Position: ");
+    Serial.println(currentPosition);
   }
 
   // Stop the motor once the position is reached

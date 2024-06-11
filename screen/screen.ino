@@ -2,6 +2,7 @@
 #include <Adafruit_ST7735.h>
 #include <SPI.h>
 
+// Pin definitions
 #define TFT_CS     10
 #define TFT_RST    8
 #define TFT_DC     9
@@ -21,7 +22,7 @@ void setup() {
   delay(150);
 
   Serial.println("Initializing display...");
-  tft.initR(INITR_BLACKTAB);
+  tft.initR(INITR_BLACKTAB);  // Try different initR options if necessary
   Serial.println("Display initialized");
 
   tft.fillScreen(ST77XX_BLACK);
