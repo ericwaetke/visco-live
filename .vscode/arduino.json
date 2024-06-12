@@ -1,0 +1,5 @@
+{
+    "sketch": "./arduino_oled_visco/visco_screen.ino",
+    "output": "build",
+    "board": "arduino:avr:leonardo"
+}
