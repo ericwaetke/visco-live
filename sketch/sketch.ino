@@ -174,7 +174,13 @@ void boot() {
   for (int iter = 0; iter <= 2; iter++) {
     for (int step = 1; step <= 4; step++) {
       selected_led(0);
+      mute_led(0);
+      selected_led(0);
+
       selected_led(step);
+      mute_led(step);
+      selected_led(step);
+
       delay(speed);
     }
   }
@@ -202,6 +208,52 @@ void selected_led(int selected) {
       break;
     case 4:
       digitalWrite(TRACK_1_LED_SELECTED, HIGH);
+      break;
+  }
+}
+
+void mute_led(int track) {
+  switch (track) {
+    case 0:
+      digitalWrite(TRACK_1_LED_MUTE, LOW);
+      digitalWrite(TRACK_2_LED_MUTE, LOW);
+      digitalWrite(TRACK_3_LED_MUTE, LOW);
+      digitalWrite(TRACK_4_LED_MUTE, LOW);
+      break;
+    case 1:
+      digitalWrite(TRACK_1_LED_MUTE, HIGH);
+      break;
+    case 2:
+      digitalWrite(TRACK_2_LED_MUTE, HIGH);
+      break;
+    case 3:
+      digitalWrite(TRACK_3_LED_MUTE, HIGH);
+      break;
+    case 4:
+      digitalWrite(TRACK_4_LED_MUTE, HIGH);
+      break;
+  }
+}
+
+void solo_led(int track) {
+  switch (track) {
+    case 0:
+      digitalWrite(TRACK_1_LED_SOLO, LOW);
+      digitalWrite(TRACK_2_LED_SOLO, LOW);
+      digitalWrite(TRACK_3_LED_SOLO, LOW);
+      digitalWrite(TRACK_4_LED_SOLO, LOW);
+      break;
+    case 1:
+      digitalWrite(TRACK_1_LED_SOLO, HIGH);
+      break;
+    case 2:
+      digitalWrite(TRACK_2_LED_SOLO, HIGH);
+      break;
+    case 3:
+      digitalWrite(TRACK_3_LED_SOLO, HIGH);
+      break;
+    case 4:
+      digitalWrite(TRACK_4_LED_SOLO, HIGH);
       break;
   }
 }
