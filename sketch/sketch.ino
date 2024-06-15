@@ -17,18 +17,30 @@
 
 #define FADER_SPEED 6    // Enable pin for both motors (PWM enabled)
 
+#define LED_MUTE 0
 #define BUTTON_MUTE 0
+#define LED_SOLO
 #define BUTTON_SOLO 0
 
-#define BUTTON0 2
-#define BUTTON1 3
-#define BUTTON2 4
-#define BUTTON3 5
+#define TRACK_1_BUTTON_SELECT 2
+#define TRACK_1_LED_SELECTED 9
+#define TRACK_1_LED_MUTE 0
+#define TRACK_1_LED_SOLO 0
 
-#define LED0 9
-#define LED1 10
-#define LED2 11
-#define LED3 12
+#define TRACK_2_BUTTON_SELECT 3
+#define TRACK_2_LED_SELECTED 10
+#define TRACK_2_LED_MUTE 0
+#define TRACK_2_LED_SOLO 0
+
+#define TRACK_3_BUTTON_SELECT 4
+#define TRACK_3_LED_SELECTED 11
+#define TRACK_3_LED_MUTE 0
+#define TRACK_3_LED_SOLO 0
+
+#define TRACK_4_BUTTON_SELECT 5
+#define TRACK_4_LED_SELECTED 12
+#define TRACK_4_LED_MUTE 0
+#define TRACK_4_LED_SOLO 0
 
 USBMIDI_Interface midi;  // Instantiate a MIDI Interface to use
 CCPotentiometer pot0 { POT0, MIDI_CC::General_Purpose_Controller_1 };
@@ -53,15 +65,15 @@ void setup() {
   Control_Surface.begin();
 
   // Initialize pins 10-13 as outputs
-  pinMode(LED0, OUTPUT);
-  pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(LED3, OUTPUT);
+  pinMode(TRACK_1_LED_SELECTED, OUTPUT);
+  pinMode(TRACK_2_LED_SELECTED, OUTPUT);
+  pinMode(TRACK_3_LED_SELECTED, OUTPUT);
+  pinMode(TRACK_4_LED_SELECTED, OUTPUT);
 
-  pinMode(BUTTON0, INPUT_PULLUP);
-  pinMode(BUTTON1, INPUT_PULLUP);
-  pinMode(BUTTON2, INPUT_PULLUP);
-  pinMode(BUTTON3, INPUT_PULLUP);
+  pinMode(TRACK_4_BUTTON_SELECT, INPUT_PULLUP);
+  pinMode(TRACK_2_BUTTON_SELECT, INPUT_PULLUP);
+  pinMode(TRACK_3_BUTTON_SELECT, INPUT_PULLUP);
+  pinMode(TRACK_4_BUTTON_SELECT, INPUT_PULLUP);
 
   pinMode(FADER_FORWARD, OUTPUT);
   pinMode(FADER_REVERSE, OUTPUT);
@@ -84,26 +96,46 @@ int faderValues[4] = {0, 0, 0, 0};
 void loop() {
   Control_Surface.loop();
 
+  // Check if Mute and/or Solo Button is pressed
   bool mute_pressed = digitalRead(BUTTON_MUTE) == low
   bool solo_pressed = digitalRead(BUTTON_SOLO) == low
 
+  // Light the Solo or Mute LEDs depending on the button state
+  if (mute_pressed) { digitalWrite(LED_MUTE, HIGH); }
+  else { digitalWrite(LED_MUTE, LOW); }
+  if (solo_pressed) { digitalWrite(LED_SOLO, HIGH); }
+  else { digitalWrite(LED_SOLO, LOW); }
+
   // Check if the button is pressed
-  if (digitalRead(BUTTON0) == LOW) {
+  if (digitalRead(TRACK_4_BUTTON_SELECT) == LOW) {
     updateTrack(0, mute_pressed, solo_pressed);
-  } else if (digitalRead(BUTTON1) == LOW) {
+  } else if (digitalRead(TRACK_2_BUTTON_SELECT) == LOW) {
     updateTrack(1, mute_pressed, solo_pressed);
-  } else if (digitalRead(BUTTON2) == LOW) {
+  } else if (digitalRead(TRACK_3_BUTTON_SELECT) == LOW) {
     updateTrack(2, mute_pressed, solo_pressed);
-  } else if (digitalRead(BUTTON3) == LOW) {
+  } else if (digitalRead(TRACK_4_BUTTON_SELECT) == LOW) {
     updateTrack(3, mute_pressed, solo_pressed);
   }
 
+  // Light the correct tracks based on states:
+  // - Muted
+  // - Soloed
+  // - Selected
   lightTrackLed();
 }
 
 void lightTrackLed() {
   selected_led(0);
   selected_led(currentTrack);
+
+  for (int i = 0; i < 4; i++) {
+    if (muted_tracks[i]) {
+
+    }
+    if (soloed_tracks[i]) {
+
+    }
+  }
 }
 
 void updateTrack(int trackId, bool mute_pressed, bool solo_pressed) {
@@ -154,22 +186,22 @@ void boot() {
 void selected_led(int selected) {
   switch (selected) {
     case 0:
-      digitalWrite(LED0, LOW);
-      digitalWrite(LED1, LOW);
-      digitalWrite(LED2, LOW);
-      digitalWrite(LED3, LOW);
+      digitalWrite(TRACK_1_LED_SELECTED, LOW);
+      digitalWrite(TRACK_2_LED_SELECTED, LOW);
+      digitalWrite(TRACK_3_LED_SELECTED, LOW);
+      digitalWrite(TRACK_4_LED_SELECTED, LOW);
       break;
     case 1:
-      digitalWrite(LED3, HIGH);
+      digitalWrite(TRACK_4_LED_SELECTED, HIGH);
       break;
     case 2:
-      digitalWrite(LED2, HIGH);
+      digitalWrite(TRACK_3_LED_SELECTED, HIGH);
       break;
     case 3:
-      digitalWrite(LED1, HIGH);
+      digitalWrite(TRACK_2_LED_SELECTED, HIGH);
       break;
     case 4:
-      digitalWrite(LED0, HIGH);
+      digitalWrite(TRACK_1_LED_SELECTED, HIGH);
       break;
   }
 }
