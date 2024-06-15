@@ -35,7 +35,7 @@ CCPotentiometer pot3 { POT3, MIDI_CC::General_Purpose_Controller_4 };
 CCPotentiometer pot4 { POT4, MIDI_CC::General_Purpose_Controller_5 };
 
 Bank<4> bank(1); // 3 banks with an offset of 4 tracks per bank (a = 4)
- 
+
 Bankable::CCPotentiometer fader[] {
     {bank, FADER_POT, 1}, // base address 1 (b = 1)
 };
@@ -74,21 +74,13 @@ void setup() {
 
 // Int showing what LED/Track is currently selected
 int currentTrack = 0;
-int lit = LED0;
 
 int faderValues[4] = {0, 0, 0, 0};
 
 void loop() {
   Control_Surface.loop();
 
-  // Serial.println("---");
-  // Serial.println(faderValues[0]);
-  // Serial.println(faderValues[1]);
-  // Serial.println(faderValues[2]);
-  // Serial.println(faderValues[3]);
-
   // Check if the button is pressed
-  // Check if any button is pressed
   if (digitalRead(BUTTON0) == LOW) {
     updateTrack(0);
   } else if (digitalRead(BUTTON1) == LOW) {
@@ -99,13 +91,12 @@ void loop() {
     updateTrack(3);
   }
 
-  digitalWrite(LED0, LOW);
-  digitalWrite(LED1, LOW);
-  digitalWrite(LED2, LOW);
-  digitalWrite(LED3, LOW);
+  lightTrackLed();
+}
 
-  // Turn on the LED at the current position
-  digitalWrite(lit, HIGH);
+void lightTrackLed() {
+  selected_led(0);
+  selected_led(currentTrack);
 }
 
 void updateTrack(int trackId) {
@@ -113,7 +104,6 @@ void updateTrack(int trackId) {
   currentTrack = trackId;
 
   bank.select(currentTrack);
-  lightLED(currentTrack);
   switchToTrack(currentTrack);
 }
 
@@ -132,49 +122,35 @@ void boot() {
 
   for (int iter = 0; iter <= 2; iter++) {
     for (int step = 1; step <= 4; step++) {
+      selected_led(0);
       selected_led(step);
       delay(speed);
     }
   }
 
   // Turn off all LEDs
-  digitalWrite(LED0, LOW);
-  digitalWrite(LED1, LOW);
-  digitalWrite(LED2, LOW);
-  digitalWrite(LED3, LOW);
-
-  lit = 12;
-}
-
-void lightLED(int track) {
-  lit = LED0 + track;
+  selected_led(0);
 }
 
 void selected_led(int selected) {
   switch (selected) {
-    case 1:
+    case 0:
       digitalWrite(LED0, LOW);
       digitalWrite(LED1, LOW);
       digitalWrite(LED2, LOW);
+      digitalWrite(LED3, LOW);
+      break;
+    case 1:
       digitalWrite(LED3, HIGH);
       break;
     case 2:
-      digitalWrite(LED0, LOW);
-      digitalWrite(LED1, LOW);
       digitalWrite(LED2, HIGH);
-      digitalWrite(LED3, LOW);
       break;
     case 3:
-      digitalWrite(LED0, LOW);
       digitalWrite(LED1, HIGH);
-      digitalWrite(LED2, LOW);
-      digitalWrite(LED3, LOW);
       break;
     case 4:
       digitalWrite(LED0, HIGH);
-      digitalWrite(LED1, LOW);
-      digitalWrite(LED2, LOW);
-      digitalWrite(LED3, LOW);
       break;
   }
 }
