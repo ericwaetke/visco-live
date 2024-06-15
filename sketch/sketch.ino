@@ -17,6 +17,9 @@
 
 #define FADER_SPEED 6    // Enable pin for both motors (PWM enabled)
 
+#define BUTTON_MUTE 0
+#define BUTTON_SOLO 0
+
 #define BUTTON0 2
 #define BUTTON1 3
 #define BUTTON2 4
@@ -44,10 +47,10 @@ void setPWMPrescaler(uint8_t prescaler) {
   TCCR1B = (TCCR1B & B11111000) | prescaler;
 }
 
-
 // The setup function runs once when you press reset or power the board
 void setup() {
   Serial.begin(9600);
+  Control_Surface.begin();
 
   // Initialize pins 10-13 as outputs
   pinMode(LED0, OUTPUT);
@@ -59,7 +62,6 @@ void setup() {
   pinMode(BUTTON1, INPUT_PULLUP);
   pinMode(BUTTON2, INPUT_PULLUP);
   pinMode(BUTTON3, INPUT_PULLUP);
-  Control_Surface.begin();
 
   pinMode(FADER_FORWARD, OUTPUT);
   pinMode(FADER_REVERSE, OUTPUT);
@@ -74,21 +76,26 @@ void setup() {
 
 // Int showing what LED/Track is currently selected
 int currentTrack = 0;
+bool muted_tracks[4] = {false}; // Initialize all tracks as not muted
+bool soloed_tracks[4] = {false}; // Initialize all tracks as not soloed
 
 int faderValues[4] = {0, 0, 0, 0};
 
 void loop() {
   Control_Surface.loop();
 
+  bool mute_pressed = digitalRead(BUTTON_MUTE) == low
+  bool solo_pressed = digitalRead(BUTTON_SOLO) == low
+
   // Check if the button is pressed
   if (digitalRead(BUTTON0) == LOW) {
-    updateTrack(0);
+    updateTrack(0, mute_pressed, solo_pressed);
   } else if (digitalRead(BUTTON1) == LOW) {
-    updateTrack(1);
+    updateTrack(1, mute_pressed, solo_pressed);
   } else if (digitalRead(BUTTON2) == LOW) {
-    updateTrack(2);
+    updateTrack(2, mute_pressed, solo_pressed);
   } else if (digitalRead(BUTTON3) == LOW) {
-    updateTrack(3);
+    updateTrack(3, mute_pressed, solo_pressed);
   }
 
   lightTrackLed();
@@ -99,12 +106,24 @@ void lightTrackLed() {
   selected_led(currentTrack);
 }
 
-void updateTrack(int trackId) {
-  faderValues[currentTrack] = fader[0].getValue();
-  currentTrack = trackId;
+void updateTrack(int trackId, bool mute_pressed, bool solo_pressed) {
+  if (!mute_pressed && !solo_pressed) {
+    faderValues[currentTrack] = fader[0].getValue();
+    currentTrack = trackId;
 
-  bank.select(currentTrack);
-  switchToTrack(currentTrack);
+    bank.select(currentTrack);
+    switchToTrack(currentTrack);
+    return;
+  }
+
+  if (mute_pressed) {
+    muted_tracks[trackId] = !muted_tracks[trackId];
+    Serial.println("Mute Track: " + String(trackId) + " - " + String(muted_tracks[trackId]));
+  }
+  if (solo_pressed) {
+    soloed_tracks[trackId] = !soloed_tracks[trackId];
+    Serial.println("Solo Track: " + String(trackId) + " - " + String(soloed_tracks[trackId]));
+  }
 }
 
 void switchToTrack(int trackId) {
