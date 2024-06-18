@@ -1,11 +1,8 @@
-// #include "MIDIUSB.h"
-// #include "PitchToNote.h"
-#include <Control_Surface.h>  // Include the library
-
+#include <Control_Surface.h>
 #include <Wire.h>
 #include <Adafruit_MCP23X17.h>
 
-// Create an MCP23017 object
+// Create MCP23017 objects
 Adafruit_MCP23X17 mcp0;
 Adafruit_MCP23X17 mcp1;
 
@@ -16,13 +13,9 @@ Adafruit_MCP23X17 mcp1;
 #define POT4 A4
 #define FADER_POT A5
 
-#define FADER_FORWARD 7      
-// Motor 1 - Reverse — WHITE, further away from Cutout
-
-#define FADER_REVERSE 8       
- // Motor 1 - Forward — RED, closer to Cutout
-
-#define FADER_SPEED 6    // Enable pin for both motors (PWM enabled)
+#define FADER_FORWARD 7
+#define FADER_REVERSE 8
+#define FADER_SPEED 6
 
 // Leonardo
 #define BUTTON_MUTE 2
@@ -74,52 +67,39 @@ Adafruit_MCP23X17 mcp1;
 
 int trackMcp[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 
-USBMIDI_Interface midi;  // Instantiate a MIDI Interface to use
+USBMIDI_Interface midi;
 CCPotentiometer pot0 { POT0, MIDI_CC::General_Purpose_Controller_1 };
 CCPotentiometer pot1 { POT1, MIDI_CC::General_Purpose_Controller_2 };
 CCPotentiometer pot2 { POT2, MIDI_CC::General_Purpose_Controller_3 };
 CCPotentiometer pot3 { POT3, MIDI_CC::General_Purpose_Controller_4 };
 CCPotentiometer pot4 { POT4, MIDI_CC::General_Purpose_Controller_5 };
 
-Bank<4> bank(1); // 3 banks with an offset of 4 tracks per bank (a = 4)
-
+Bank<4> bank(1);
 Bankable::CCPotentiometer fader[] {
-    {bank, FADER_POT, 1}, // base address 1 (b = 1)
+    {bank, FADER_POT, 1},
 };
 
 void setPWMPrescaler(uint8_t prescaler) {
   TCCR1B = (TCCR1B & B11111000) | prescaler;
 }
 
-// The setup function runs once when you press reset or power the board
 void setup() {
   Serial.begin(9600);
   Control_Surface.begin();
 
- // Initialize the MCP23017 with the default I2C address (0x20)
-  if (!mcp0.begin_I2C()) {
+  if (!mcp0.begin_I2C(0x20)) {
     Serial.println("Error Initializing MCP23017");
     while (1);
   }
   Serial.println("Initialized MCP23017");
 
-  // Interate over all the pins and set them as inputs or outputs
   for (int i = 0; i < 16; i++) {
-    switch(trackMcp[i]) {
-      case 0:
-        if (i % 4 == 0) {
-          mcp0.pinMode(i, INPUT);
-        } else {
-          mcp0.pinMode(i, OUTPUT);
-        }
-        break;
-      case 1:
-        if (i % 4 == 0) {
-          mcp1.pinMode(i, INPUT_PULLUP);
-        } else {
-          mcp1.pinMode(i, OUTPUT);
-        }
-        break;
+    if (i % 4 == 0) {
+      mcp0.pinMode(i, INPUT);
+      mcp1.pinMode(i, INPUT_PULLUP);
+    } else {
+      mcp0.pinMode(i, OUTPUT);
+      mcp1.pinMode(i, OUTPUT);
     }
   }
 
@@ -127,68 +107,51 @@ void setup() {
   pinMode(FADER_REVERSE, OUTPUT);
   pinMode(FADER_SPEED, OUTPUT);
 
-  // Set initial PWM frequency for pin 9 (Timer 1)
   setPWMPrescaler(1);
-
-  // Start Boot Animation
   boot();
 }
 
-// Int showing what LED/Track is currently selected
 int currentTrack = 0;
-bool muted_tracks[8] = {false}; // Initialize all tracks as not muted
-bool soloed_tracks[8] = {false}; // Initialize all tracks as not soloed
-
-int faderValues[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+bool muted_tracks[8] = {false};
+bool soloed_tracks[8] = {false};
+int faderValues[8] = {0};
 
 void loop() {
+  Serial.print("Selected Track:");
+  Serial.print(currentTrack);
   Control_Surface.loop();
 
-  // Check if Mute and/or Solo Button is pressed
-  bool mute_pressed = digitalRead(BUTTON_MUTE) == low
-  bool solo_pressed = digitalRead(BUTTON_SOLO) == low
+  bool mute_pressed = digitalRead(BUTTON_MUTE) == LOW;
+  bool solo_pressed = digitalRead(BUTTON_SOLO) == LOW;
 
-  // Light the Solo or Mute LEDs depending on the button state
-  if (mute_pressed) { digitalWrite(LED_MUTE, HIGH); }
-  else { digitalWrite(LED_MUTE, LOW); }
-  if (solo_pressed) { digitalWrite(LED_SOLO, HIGH); }
-  else { digitalWrite(LED_SOLO, LOW); }
+  digitalWrite(LED_MUTE, mute_pressed ? HIGH : LOW);
+  digitalWrite(LED_SOLO, solo_pressed ? HIGH : LOW);
 
-  // Interate over all the buttons and check if any is pressed
   for (int i = 0; i < 8; i++) {
-    if (selectedMcp(i).digitalRead((i % 4) * 4) == LOW) {
+    if (getMcpForTrack(i)->digitalRead((i % 4) * 4) == LOW) {
       updateTrack(i, mute_pressed, solo_pressed);
     }
   }
 
-  // Light the correct tracks based on states:
-  // - Muted
-  // - Soloed
-  // - Selected
   lightTrackLed();
 }
 
-Adafruit_MCP23X17 selectedMcp(int track) {
-  switch (trackMcp[track]) {
-    case 0:
-      return mcp0;
-    case 1:
-      return mcp1;
-  }
+Adafruit_MCP23X17* getMcpForTrack(int track) {
+  return (trackMcp[track] == 0) ? &mcp0 : &mcp1;
 }
 
 void lightTrackLed() {
   selected_led(0);
   mute_led(0);
-  selected_led(0);
+  solo_led(0);
   selected_led(currentTrack);
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 8; i++) {
     if (muted_tracks[i]) {
-      mute_led(i);
+      mute_led(i + 1);
     }
     if (soloed_tracks[i]) {
-      solo_led(i);
+      solo_led(i + 1);
     }
   }
 }
@@ -197,7 +160,6 @@ void updateTrack(int trackId, bool mute_pressed, bool solo_pressed) {
   if (!mute_pressed && !solo_pressed) {
     faderValues[currentTrack] = fader[0].getValue();
     currentTrack = trackId;
-
     bank.select(currentTrack);
     switchToTrack(currentTrack);
     return;
@@ -219,7 +181,7 @@ void switchToTrack(int trackId) {
   if (faderValues[trackId]) {
     moveTo(faderValues[trackId] * 8);
   } else {
-    Serial.println("no value");
+    Serial.println("No value");
   }
 }
 
@@ -230,117 +192,61 @@ void boot() {
     for (int step = 1; step <= 4; step++) {
       selected_led(0);
       mute_led(0);
-      selected_led(0);
+      solo_led(0);
 
       selected_led(step);
       mute_led(step);
-      selected_led(step);
+      solo_led(step);
 
       delay(speed);
     }
   }
 
-  // Turn off all LEDs
   selected_led(0);
+  mute_led(0);
+  solo_led(0);
 }
 
 void selected_led(int selected) {
-  switch (selected) {
-    case 0:
-      selectedMcp(selected).digitalWrite(TRACK_1_LED_SELECTED, LOW);
-      selectedMcp(selected).digitalWrite(TRACK_2_LED_SELECTED, LOW);
-      selectedMcp(selected).digitalWrite(TRACK_3_LED_SELECTED, LOW);
-      selectedMcp(selected).digitalWrite(TRACK_4_LED_SELECTED, LOW);
-      break;
-    case 1:
-      selectedMcp(selected).digitalWrite(TRACK_1_LED_SELECTED, HIGH);
-      break;
-    case 2:
-      selectedMcp(selected).digitalWrite(TRACK_2_LED_SELECTED, HIGH);
-      break;
-    case 3:
-      selectedMcp(selected).digitalWrite(TRACK_3_LED_SELECTED, HIGH);
-      break;
-    case 4:
-      selectedMcp(selected).digitalWrite(TRACK_4_LED_SELECTED, HIGH);
-      break;
+  for (int i = 0; i < 8; i++) {
+    getMcpForTrack(i)->digitalWrite(i % 4 == 0 ? TRACK_1_LED_SELECTED + (i % 4) : TRACK_1_LED_SELECTED + (i % 4), (selected == i + 1) ? HIGH : LOW);
   }
 }
 
 void mute_led(int track) {
-  switch (track) {
-    case 0:
-      selectedMcp(selected).digitalWrite(TRACK_1_LED_MUTE, LOW);
-      selectedMcp(selected).digitalWrite(TRACK_2_LED_MUTE, LOW);
-      selectedMcp(selected).digitalWrite(TRACK_3_LED_MUTE, LOW);
-      selectedMcp(selected).digitalWrite(TRACK_4_LED_MUTE, LOW);
-      break;
-    case 1:
-      selectedMcp(selected).digitalWrite(TRACK_1_LED_MUTE, HIGH);
-      break;
-    case 2:
-      selectedMcp(selected).digitalWrite(TRACK_2_LED_MUTE, HIGH);
-      break;
-    case 3:
-      selectedMcp(selected).digitalWrite(TRACK_3_LED_MUTE, HIGH);
-      break;
-    case 4:
-      selectedMcp(selected).digitalWrite(TRACK_4_LED_MUTE, HIGH);
-      break;
+  for (int i = 0; i < 8; i++) {
+    getMcpForTrack(i)->digitalWrite(i % 4 == 0 ? TRACK_1_LED_MUTE + (i % 4) : TRACK_1_LED_MUTE + (i % 4), (track == i + 1) ? HIGH : LOW);
   }
 }
 
 void solo_led(int track) {
-  switch (track) {
-    case 0:
-      selectedMcp(selected).digitalWrite(TRACK_1_LED_SOLO, LOW);
-      selectedMcp(selected).digitalWrite(TRACK_2_LED_SOLO, LOW);
-      selectedMcp(selected).digitalWrite(TRACK_3_LED_SOLO, LOW);
-      selectedMcp(selected).digitalWrite(TRACK_4_LED_SOLO, LOW);
-      break;
-    case 1:
-      selectedMcp(selected).digitalWrite(TRACK_1_LED_SOLO, HIGH);
-      break;
-    case 2:
-      selectedMcp(selected).digitalWrite(TRACK_2_LED_SOLO, HIGH);
-      break;
-    case 3:
-      selectedMcp(selected).digitalWrite(TRACK_3_LED_SOLO, HIGH);
-      break;
-    case 4:
-      selectedMcp(selected).digitalWrite(TRACK_4_LED_SOLO, HIGH);
-      break;
+  for (int i = 0; i < 8; i++) {
+    getMcpForTrack(i)->digitalWrite(i % 4 == 0 ? TRACK_1_LED_SOLO + (i % 4) : TRACK_1_LED_SOLO + (i % 4), (track == i + 1) ? HIGH : LOW);
   }
 }
 
-// Function to move the fader to a specified position
 void moveTo(int targetPosition) {
   Serial.println("Moving fader to " + String(targetPosition));
   int currentPosition = analogRead(FADER_POT);
   
-  // Move the fader until it reaches the target position
-  while (abs(targetPosition - currentPosition) > 50) { // Allowing some tolerance
+  while (abs(targetPosition - currentPosition) > 50) {
     int distance = abs(targetPosition - currentPosition);
-    int speed = map(distance, 0, 1023, 170, 220); // Proportional control
+    int speed = map(distance, 0, 1023, 170, 220);
 
     if (targetPosition > currentPosition) {
-      Serial.print("Moving Up ");
-      // Move fader up
       digitalWrite(FADER_FORWARD, HIGH);
       digitalWrite(FADER_REVERSE, LOW);
     } else {
-      Serial.print("Moving Down ");
-      // Move fader down
       digitalWrite(FADER_FORWARD, LOW);
       digitalWrite(FADER_REVERSE, HIGH);
     }
     analogWrite(FADER_SPEED, speed);
 
-     // Debug outputSerial.print("Current Position: ");
+    currentPosition = analogRead(FADER_POT);
+    Serial.print("Current Position: ");
     Serial.println(currentPosition);
   }
 
-  // Stop the motor once the position is reached
   digitalWrite(FADER_FORWARD, LOW);
   digitalWrite(FADER_REVERSE, LOW);
   analogWrite(FADER_SPEED, 0);
