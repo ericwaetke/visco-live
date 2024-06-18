@@ -2,6 +2,13 @@
 // #include "PitchToNote.h"
 #include <Control_Surface.h>  // Include the library
 
+#include <Wire.h>
+#include <Adafruit_MCP23X17.h>
+
+// Create an MCP23017 object
+Adafruit_MCP23X17 mcp0;
+Adafruit_MCP23X17 mcp1;
+
 #define POT0 A0
 #define POT1 A1
 #define POT2 A2
@@ -17,30 +24,55 @@
 
 #define FADER_SPEED 6    // Enable pin for both motors (PWM enabled)
 
-#define LED_MUTE 0
-#define BUTTON_MUTE 0
-#define LED_SOLO
-#define BUTTON_SOLO 0
+// Leonardo
+#define BUTTON_MUTE 2
+#define LED_MUTE 3
+#define BUTTON_SOLO 4
+#define LED_SOLO 5
 
-#define TRACK_1_BUTTON_SELECT 2
-#define TRACK_1_LED_SELECTED 9
-#define TRACK_1_LED_MUTE 0
-#define TRACK_1_LED_SOLO 0
+// MCP 0
+#define TRACK_1_BUTTON_SELECT 0
+#define TRACK_1_LED_SELECTED 1
+#define TRACK_1_LED_MUTE 2
+#define TRACK_1_LED_SOLO 3
 
-#define TRACK_2_BUTTON_SELECT 3
-#define TRACK_2_LED_SELECTED 10
-#define TRACK_2_LED_MUTE 0
-#define TRACK_2_LED_SOLO 0
+#define TRACK_2_BUTTON_SELECT 4
+#define TRACK_2_LED_SELECTED 5
+#define TRACK_2_LED_MUTE 6
+#define TRACK_2_LED_SOLO 7
 
-#define TRACK_3_BUTTON_SELECT 4
-#define TRACK_3_LED_SELECTED 11
-#define TRACK_3_LED_MUTE 0
-#define TRACK_3_LED_SOLO 0
+#define TRACK_3_BUTTON_SELECT 8
+#define TRACK_3_LED_SELECTED 9
+#define TRACK_3_LED_MUTE 10
+#define TRACK_3_LED_SOLO 11
 
-#define TRACK_4_BUTTON_SELECT 5
-#define TRACK_4_LED_SELECTED 12
-#define TRACK_4_LED_MUTE 0
-#define TRACK_4_LED_SOLO 0
+#define TRACK_4_BUTTON_SELECT 12
+#define TRACK_4_LED_SELECTED 13
+#define TRACK_4_LED_MUTE 14
+#define TRACK_4_LED_SOLO 15
+
+// MCP 1
+#define TRACK_5_BUTTON_SELECT 0
+#define TRACK_5_LED_SELECTED 1
+#define TRACK_5_LED_MUTE 2
+#define TRACK_5_LED_SOLO 3
+
+#define TRACK_6_BUTTON_SELECT 4
+#define TRACK_6_LED_SELECTED 5
+#define TRACK_6_LED_MUTE 6
+#define TRACK_6_LED_SOLO 7
+
+#define TRACK_7_BUTTON_SELECT 8
+#define TRACK_7_LED_SELECTED 9
+#define TRACK_7_LED_MUTE 10
+#define TRACK_7_LED_SOLO 11
+
+#define TRACK_8_BUTTON_SELECT 12
+#define TRACK_8_LED_SELECTED 13
+#define TRACK_8_LED_MUTE 14
+#define TRACK_8_LED_SOLO 15
+
+int trackMcp[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 
 USBMIDI_Interface midi;  // Instantiate a MIDI Interface to use
 CCPotentiometer pot0 { POT0, MIDI_CC::General_Purpose_Controller_1 };
@@ -64,16 +96,32 @@ void setup() {
   Serial.begin(9600);
   Control_Surface.begin();
 
-  // Initialize pins 10-13 as outputs
-  pinMode(TRACK_1_LED_SELECTED, OUTPUT);
-  pinMode(TRACK_2_LED_SELECTED, OUTPUT);
-  pinMode(TRACK_3_LED_SELECTED, OUTPUT);
-  pinMode(TRACK_4_LED_SELECTED, OUTPUT);
+ // Initialize the MCP23017 with the default I2C address (0x20)
+  if (!mcp0.begin_I2C()) {
+    Serial.println("Error Initializing MCP23017");
+    while (1);
+  }
+  Serial.println("Initialized MCP23017");
 
-  pinMode(TRACK_4_BUTTON_SELECT, INPUT_PULLUP);
-  pinMode(TRACK_2_BUTTON_SELECT, INPUT_PULLUP);
-  pinMode(TRACK_3_BUTTON_SELECT, INPUT_PULLUP);
-  pinMode(TRACK_4_BUTTON_SELECT, INPUT_PULLUP);
+  // Interate over all the pins and set them as inputs or outputs
+  for (int i = 0; i < 16; i++) {
+    switch(trackMcp[i]) {
+      case 0:
+        if (i % 4 == 0) {
+          mcp0.pinMode(i, INPUT);
+        } else {
+          mcp0.pinMode(i, OUTPUT);
+        }
+        break;
+      case 1:
+        if (i % 4 == 0) {
+          mcp1.pinMode(i, INPUT_PULLUP);
+        } else {
+          mcp1.pinMode(i, OUTPUT);
+        }
+        break;
+    }
+  }
 
   pinMode(FADER_FORWARD, OUTPUT);
   pinMode(FADER_REVERSE, OUTPUT);
@@ -88,10 +136,10 @@ void setup() {
 
 // Int showing what LED/Track is currently selected
 int currentTrack = 0;
-bool muted_tracks[4] = {false}; // Initialize all tracks as not muted
-bool soloed_tracks[4] = {false}; // Initialize all tracks as not soloed
+bool muted_tracks[8] = {false}; // Initialize all tracks as not muted
+bool soloed_tracks[8] = {false}; // Initialize all tracks as not soloed
 
-int faderValues[4] = {0, 0, 0, 0};
+int faderValues[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 void loop() {
   Control_Surface.loop();
@@ -106,15 +154,11 @@ void loop() {
   if (solo_pressed) { digitalWrite(LED_SOLO, HIGH); }
   else { digitalWrite(LED_SOLO, LOW); }
 
-  // Check if the button is pressed
-  if (digitalRead(TRACK_4_BUTTON_SELECT) == LOW) {
-    updateTrack(0, mute_pressed, solo_pressed);
-  } else if (digitalRead(TRACK_2_BUTTON_SELECT) == LOW) {
-    updateTrack(1, mute_pressed, solo_pressed);
-  } else if (digitalRead(TRACK_3_BUTTON_SELECT) == LOW) {
-    updateTrack(2, mute_pressed, solo_pressed);
-  } else if (digitalRead(TRACK_4_BUTTON_SELECT) == LOW) {
-    updateTrack(3, mute_pressed, solo_pressed);
+  // Interate over all the buttons and check if any is pressed
+  for (int i = 0; i < 8; i++) {
+    if (selectedMcp(i).digitalRead((i % 4) * 4) == LOW) {
+      updateTrack(i, mute_pressed, solo_pressed);
+    }
   }
 
   // Light the correct tracks based on states:
@@ -124,16 +168,27 @@ void loop() {
   lightTrackLed();
 }
 
+Adafruit_MCP23X17 selectedMcp(int track) {
+  switch (trackMcp[track]) {
+    case 0:
+      return mcp0;
+    case 1:
+      return mcp1;
+  }
+}
+
 void lightTrackLed() {
+  selected_led(0);
+  mute_led(0);
   selected_led(0);
   selected_led(currentTrack);
 
   for (int i = 0; i < 4; i++) {
     if (muted_tracks[i]) {
-
+      mute_led(i);
     }
     if (soloed_tracks[i]) {
-
+      solo_led(i);
     }
   }
 }
@@ -192,22 +247,22 @@ void boot() {
 void selected_led(int selected) {
   switch (selected) {
     case 0:
-      digitalWrite(TRACK_1_LED_SELECTED, LOW);
-      digitalWrite(TRACK_2_LED_SELECTED, LOW);
-      digitalWrite(TRACK_3_LED_SELECTED, LOW);
-      digitalWrite(TRACK_4_LED_SELECTED, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_1_LED_SELECTED, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_2_LED_SELECTED, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_3_LED_SELECTED, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_4_LED_SELECTED, LOW);
       break;
     case 1:
-      digitalWrite(TRACK_4_LED_SELECTED, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_1_LED_SELECTED, HIGH);
       break;
     case 2:
-      digitalWrite(TRACK_3_LED_SELECTED, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_2_LED_SELECTED, HIGH);
       break;
     case 3:
-      digitalWrite(TRACK_2_LED_SELECTED, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_3_LED_SELECTED, HIGH);
       break;
     case 4:
-      digitalWrite(TRACK_1_LED_SELECTED, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_4_LED_SELECTED, HIGH);
       break;
   }
 }
@@ -215,22 +270,22 @@ void selected_led(int selected) {
 void mute_led(int track) {
   switch (track) {
     case 0:
-      digitalWrite(TRACK_1_LED_MUTE, LOW);
-      digitalWrite(TRACK_2_LED_MUTE, LOW);
-      digitalWrite(TRACK_3_LED_MUTE, LOW);
-      digitalWrite(TRACK_4_LED_MUTE, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_1_LED_MUTE, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_2_LED_MUTE, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_3_LED_MUTE, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_4_LED_MUTE, LOW);
       break;
     case 1:
-      digitalWrite(TRACK_1_LED_MUTE, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_1_LED_MUTE, HIGH);
       break;
     case 2:
-      digitalWrite(TRACK_2_LED_MUTE, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_2_LED_MUTE, HIGH);
       break;
     case 3:
-      digitalWrite(TRACK_3_LED_MUTE, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_3_LED_MUTE, HIGH);
       break;
     case 4:
-      digitalWrite(TRACK_4_LED_MUTE, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_4_LED_MUTE, HIGH);
       break;
   }
 }
@@ -238,22 +293,22 @@ void mute_led(int track) {
 void solo_led(int track) {
   switch (track) {
     case 0:
-      digitalWrite(TRACK_1_LED_SOLO, LOW);
-      digitalWrite(TRACK_2_LED_SOLO, LOW);
-      digitalWrite(TRACK_3_LED_SOLO, LOW);
-      digitalWrite(TRACK_4_LED_SOLO, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_1_LED_SOLO, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_2_LED_SOLO, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_3_LED_SOLO, LOW);
+      selectedMcp(selected).digitalWrite(TRACK_4_LED_SOLO, LOW);
       break;
     case 1:
-      digitalWrite(TRACK_1_LED_SOLO, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_1_LED_SOLO, HIGH);
       break;
     case 2:
-      digitalWrite(TRACK_2_LED_SOLO, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_2_LED_SOLO, HIGH);
       break;
     case 3:
-      digitalWrite(TRACK_3_LED_SOLO, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_3_LED_SOLO, HIGH);
       break;
     case 4:
-      digitalWrite(TRACK_4_LED_SOLO, HIGH);
+      selectedMcp(selected).digitalWrite(TRACK_4_LED_SOLO, HIGH);
       break;
   }
 }
