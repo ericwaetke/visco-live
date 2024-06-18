@@ -4,7 +4,7 @@
 
 // Create MCP23017 objects
 Adafruit_MCP23X17 mcp0;
-Adafruit_MCP23X17 mcp1;
+// Adafruit_MCP23X17 mcp1;
 
 #define POT0 A0
 #define POT1 A1
@@ -18,10 +18,10 @@ Adafruit_MCP23X17 mcp1;
 #define FADER_SPEED 6
 
 // Leonardo
-#define BUTTON_MUTE 2
-#define LED_MUTE 3
-#define BUTTON_SOLO 4
-#define LED_SOLO 5
+#define BUTTON_MUTE 4
+#define LED_MUTE 5
+#define BUTTON_SOLO 6
+#define LED_SOLO 7
 
 // MCP 0
 #define TRACK_1_BUTTON_SELECT 0
@@ -85,6 +85,7 @@ void setPWMPrescaler(uint8_t prescaler) {
 
 void setup() {
   Serial.begin(9600);
+  while (!Serial) {delay(10);}
   Control_Surface.begin();
 
   if (!mcp0.begin_I2C(0x20)) {
@@ -95,11 +96,13 @@ void setup() {
 
   for (int i = 0; i < 16; i++) {
     if (i % 4 == 0) {
-      mcp0.pinMode(i, INPUT);
-      mcp1.pinMode(i, INPUT_PULLUP);
+      Serial.println("Setting pin " + String(i) + " to INPUT_PULLUP");
+      mcp0.pinMode(i, INPUT_PULLUP);
+      // mcp1.pinMode(i, INPUT_PULLUP);
     } else {
+      Serial.println("Setting pin " + String(i) + " to OUTPUT");
       mcp0.pinMode(i, OUTPUT);
-      mcp1.pinMode(i, OUTPUT);
+      // mcp1.pinMode(i, OUTPUT);
     }
   }
 
@@ -109,16 +112,19 @@ void setup() {
 
   setPWMPrescaler(1);
   boot();
+
+  pinMode(BUTTON_MUTE, INPUT_PULLUP);
+  pinMode(LED_MUTE, OUTPUT);
+  pinMode(BUTTON_SOLO, INPUT_PULLUP);
+  pinMode(LED_SOLO, OUTPUT);
 }
 
-int currentTrack = 0;
+int currentTrack = 1;
 bool muted_tracks[8] = {false};
 bool soloed_tracks[8] = {false};
 int faderValues[8] = {0};
 
 void loop() {
-  Serial.print("Selected Track:");
-  Serial.print(currentTrack);
   Control_Surface.loop();
 
   bool mute_pressed = digitalRead(BUTTON_MUTE) == LOW;
@@ -127,8 +133,9 @@ void loop() {
   digitalWrite(LED_MUTE, mute_pressed ? HIGH : LOW);
   digitalWrite(LED_SOLO, solo_pressed ? HIGH : LOW);
 
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 4; i++) {
     if (getMcpForTrack(i)->digitalRead((i % 4) * 4) == LOW) {
+      Serial.println("Track " + String(i) + " selected");
       updateTrack(i, mute_pressed, solo_pressed);
     }
   }
@@ -137,7 +144,8 @@ void loop() {
 }
 
 Adafruit_MCP23X17* getMcpForTrack(int track) {
-  return (trackMcp[track] == 0) ? &mcp0 : &mcp1;
+  // return (trackMcp[track] == 0) ? &mcp0 : &mcp1;
+  return &mcp0;
 }
 
 void lightTrackLed() {
@@ -179,7 +187,7 @@ void switchToTrack(int trackId) {
   Serial.println("Switching to Track: " + String(trackId));
 
   if (faderValues[trackId]) {
-    moveTo(faderValues[trackId] * 8);
+    // moveTo(faderValues[trackId] * 8);
   } else {
     Serial.println("No value");
   }
@@ -188,15 +196,15 @@ void switchToTrack(int trackId) {
 void boot() {
   int speed = 100;
 
-  for (int iter = 0; iter <= 2; iter++) {
+  for (int iter = 0; iter <= 10; iter++) {
     for (int step = 1; step <= 4; step++) {
       selected_led(0);
       mute_led(0);
       solo_led(0);
 
       selected_led(step);
-      mute_led(step);
-      solo_led(step);
+      // mute_led(step);
+      // solo_led(step);
 
       delay(speed);
     }
@@ -208,20 +216,26 @@ void boot() {
 }
 
 void selected_led(int selected) {
-  for (int i = 0; i < 8; i++) {
-    getMcpForTrack(i)->digitalWrite(i % 4 == 0 ? TRACK_1_LED_SELECTED + (i % 4) : TRACK_1_LED_SELECTED + (i % 4), (selected == i + 1) ? HIGH : LOW);
+  for (int i = 0; i < 4; i++) { // Loop only for 4 tracks as there are 4 steps in the boot sequence
+    int ledPin = TRACK_1_LED_SELECTED + ((i % 4) * 4); // Correct pin calculation
+    int state = (selected == i) ? HIGH : LOW;
+    getMcpForTrack(i)->digitalWrite(ledPin, state);
   }
 }
 
 void mute_led(int track) {
-  for (int i = 0; i < 8; i++) {
-    getMcpForTrack(i)->digitalWrite(i % 4 == 0 ? TRACK_1_LED_MUTE + (i % 4) : TRACK_1_LED_MUTE + (i % 4), (track == i + 1) ? HIGH : LOW);
+  for (int i = 0; i < 4; i++) {
+    int ledPin = TRACK_1_LED_MUTE + ((i % 4) * 4);
+    int state = (track == i + 1) ? HIGH : LOW;
+    getMcpForTrack(i)->digitalWrite(ledPin, state);
   }
 }
 
 void solo_led(int track) {
-  for (int i = 0; i < 8; i++) {
-    getMcpForTrack(i)->digitalWrite(i % 4 == 0 ? TRACK_1_LED_SOLO + (i % 4) : TRACK_1_LED_SOLO + (i % 4), (track == i + 1) ? HIGH : LOW);
+  for (int i = 0; i < 4; i++) {
+    int ledPin = TRACK_1_LED_SOLO + ((i % 4) * 4);
+    int state = (track == i + 1) ? HIGH : LOW;
+    getMcpForTrack(i)->digitalWrite(ledPin, state);
   }
 }
 
