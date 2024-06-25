@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-s3-devkitc-1",
+      "id": "esp",
+      "top": -28.98,
+      "left": 42.97,
+      "attrs": {}
+    },
+    {
+      "type": "board-grove-oled-sh1107",
+      "id": "oled3",
+      "top": 191.77,
+      "left": -217.7,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [
+      "oled3:GND.1",
+      "esp:GND.1",
+      "black",
+      [
+        "h19.2",
+        "v-105.6",
+        "h163.2",
+        "v105.6"
+      ]
+    ],
+    [
+      "oled3:VCC",
+      "esp:3V3.1",
+      "red",
+      [
+        "h28.8",
+        "v-105.6",
+        "h144",
+        "v220.8"
+      ]
+    ],
+    [
+      "oled3:SDA",
+      "esp:8",
+      "blue",
+      [
+        "h19.2",
+        "v105.6"
+      ]
+    ],
+    [
+      "oled3:SCL.1",
+      "esp:9",
+      "green",
+      [
+        "h9.6",
+        "v124.8"
+      ]
+    ]
+  ],
+  "dependencies": {}
+}

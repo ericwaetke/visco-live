@@ -10,7 +10,6 @@ void setup() {
   while (!Serial) {
     delay(10); // Wait for serial port to connect (useful for Leonardo)
   }
-  Serial.println("Starting Arduino");
 
   // Initialize I2C communication
   Wire.begin();
@@ -20,14 +19,12 @@ void setup() {
     Serial.println("Error initializing MCP23017 at 0x20");
     while(1);
   }
-  Serial.println("Initialized MCP23017 at 0x20");
 
   // Initialize MCP23017 at address 0x21
   if (!mcp2.begin_I2C(0x21)) {
     Serial.println("Error initializing MCP23017 at 0x21");
     while(1);
   }
-  Serial.println("Initialized MCP23017 at 0x21");
 
   // Set MCP23017 pins as outputs
   for (uint8_t pin = 8; pin <= 13; ++pin) {
