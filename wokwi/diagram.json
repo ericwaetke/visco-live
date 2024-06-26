@@ -7,7 +7,7 @@
       "type": "board-esp32-s3-devkitc-1", 
       "id": "esp", 
       "top": -50, 
-      "left": 0, 
+      "left": 50, 
       "attrs": {} 
     },
     {
@@ -21,29 +21,28 @@
       "type": "wokwi-ky-040", 
       "id": "encoder1", 
       "top": 300,
-      "left": 0, 
+      "left": 50, 
       "attrs": {} 
     },
     { 
       "type": "wokwi-pushbutton", 
       "id": "btn1", 
       "top": 200, 
-      "left": -100, 
+      "left": -120, 
       "attrs": { "color": "green" } 
     }
   ],
   "connections": [
-    [ "oled3:GND.1", "esp:GND.1", "black", [ "h19.2", "v-105.6", "h163.2", "v105.6" ] ],
-    [ "oled3:VCC", "esp:3V3.1", "red", [ "h28.8", "v-105.6", "h144", "v220.8" ] ],
+    [ "oled3:GND.1", "esp:GND.1", "black", [ "h40", "v0", "h0", "v0" ] ],
+    [ "oled3:VCC", "esp:3V3.1", "red", [ "h28.8", "v-105.6", "h0", "v0" ] ],
     [ "oled3:SDA", "esp:8", "blue", [ "h19.2", "v105.6" ] ],
     [ "oled3:SCL.1", "esp:9", "green", [ "h9.6", "v124.8" ] ],
-    [ "encoder1:GND", "esp:GND.1", "black", [ "h0", "v0" ] ],
-    [ "encoder1:+", "esp:3V3.1", "red", [ "h0", "v0" ] ],
-    [ "encoder1:DT", "esp:2", "blue", [ "h0", "v0" ] ],
-    [ "encoder1:CLK", "esp:4", "green", [ "h0", "v0" ] ],
-    [ "encoder1:SW", "esp:15", "yellow", [ "h0", "v0" ] ],
-    [ "btn1:2.r", "esp:3V3.1", "green", [ "h0" ] ],
-    [ "btn1:1.r", "esp:5", "green", [ "h0" ] ]
+    [ "encoder1:GND", "esp:GND.1", "black", [ "h20", "v20" ] ],
+    [ "encoder1:DT", "esp:2", "blue", [ "h40", "v20" ] ],
+    [ "encoder1:CLK", "esp:4", "green", [ "h50", "v30" ] ],
+    [ "encoder1:SW", "esp:15", "yellow", [ "h30", "v40" ] ],
+    [ "btn1:2.r", "esp:GND.1", "black", [ "h10", "v0" ] ],
+    [ "btn1:1.r", "esp:5", "green", [ "h20", "v0" ] ]
   ],
   "dependencies": {}
 }
