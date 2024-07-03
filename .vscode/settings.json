@@ -1,3 +1,4 @@
 {
-	"cmake.sourceDirectory": "/Users/ericwatke/Documents/GitHub/visco-live/libraries/Control_Surface"
+	"cmake.sourceDirectory": "/Users/ericwatke/Documents/GitHub/visco-live/libraries/Control_Surface",
+	"cmake.configureOnOpen": true
 }
