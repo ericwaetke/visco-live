@@ -6,7 +6,7 @@
 #include "font/unibody_8.h"
 #include "font/unibody_16.h"
 
-U8G2_SH1107_128X128_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+U8G2_SH1107_PIMORONI_128X128_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
 #define ENCODER_DT 2
 #define ENCODER_CLK 4
@@ -19,7 +19,8 @@ int VolumeIn = 51; // Start at 40% (51 out of 128)
 int screenHeight = 128;
 int screenWidth = 128;
 
-enum ScreenState {
+enum ScreenState
+{
   SCREEN_VOLUME,
   SCREEN_SAMPLE_FOLDER,
   SCREEN_SAMPLE_LIST
@@ -27,20 +28,20 @@ enum ScreenState {
 
 ScreenState screenState = SCREEN_VOLUME;
 
-const char* sampleFolder[] = {"1 Kick >", "2 Snare >", "3 Clap >", "4 Closed Hihat >", "5 Open Hihat >", "6 Tom >", "9 Percussions >"};
-const char* kickSamples[] = {"1974 Kick", "808 Boom", "Afrofunk Kick", "Big Kick", "Boombap Kick", "Box Kick", "Crusty Kick", "Deep Kick"};
-const char* snareSamples[] = {"1974 Snare", "909 Snare", "Afrobeat Snare", "Afrofunk Snare", "Air Snare", "Boombap Snare", "Brostep Snare", "Brush Snare"};
-const char* clapSamples[] = {"808 Clap", "909 Clap", "Analog Clap", "Boogie Clap", "Clap Trap", "Disco Clap", "DMX Clap", "Fingersnap"};
-const char* closedHihatSamples[] = {"1974 Hihat", "Afrofunk Hihat", "Boombap Hihat", "Crisp Hihat", "Dusty Hihat", "French Hihat", "Funk Hihat", "Hiphop Hihat"};
-const char* openHihatSamples[] = {"626 Open", "707 Open", "808 Open", "909 Open", "Bright Open", "Cymbal Open", "DMX Open", "French Open"};
-const char* tomSamples[] = {"Analog Tom", "Block Tom", "Brush Tom", "Chip Tom", "Electro Tom", "Room Tom", "Small Tom", "Syndrum"};
-const char* percussionsSamples[] = {"Bongo High", "Bongo Low", "Cabasa", "Conga High", "Conga Mid", "Cowbell High", "Cowbell Tight", "Cowbell"};
+const char *sampleFolder[] = {"1 Kick >", "2 Snare >", "3 Clap >", "4 Closed Hihat >", "5 Open Hihat >", "6 Tom >", "9 Percussions >"};
+const char *kickSamples[] = {"1974 Kick", "808 Boom", "Afrofunk Kick", "Big Kick", "Boombap Kick", "Box Kick", "Crusty Kick", "Deep Kick"};
+const char *snareSamples[] = {"1974 Snare", "909 Snare", "Afrobeat Snare", "Afrofunk Snare", "Air Snare", "Boombap Snare", "Brostep Snare", "Brush Snare"};
+const char *clapSamples[] = {"808 Clap", "909 Clap", "Analog Clap", "Boogie Clap", "Clap Trap", "Disco Clap", "DMX Clap", "Fingersnap"};
+const char *closedHihatSamples[] = {"1974 Hihat", "Afrofunk Hihat", "Boombap Hihat", "Crisp Hihat", "Dusty Hihat", "French Hihat", "Funk Hihat", "Hiphop Hihat"};
+const char *openHihatSamples[] = {"626 Open", "707 Open", "808 Open", "909 Open", "Bright Open", "Cymbal Open", "DMX Open", "French Open"};
+const char *tomSamples[] = {"Analog Tom", "Block Tom", "Brush Tom", "Chip Tom", "Electro Tom", "Room Tom", "Small Tom", "Syndrum"};
+const char *percussionsSamples[] = {"Bongo High", "Bongo Low", "Cabasa", "Conga High", "Conga Mid", "Cowbell High", "Cowbell Tight", "Cowbell"};
 
-const char** sampleArrays[] = {kickSamples, snareSamples, clapSamples, closedHihatSamples, openHihatSamples, tomSamples, percussionsSamples};
+const char **sampleArrays[] = {kickSamples, snareSamples, clapSamples, closedHihatSamples, openHihatSamples, tomSamples, percussionsSamples};
 const int sampleCounts[] = {8, 8, 8, 8, 8, 8, 8}; // Number of samples in each category
 
-int previewFolder = 0; // Initial folder selection for navigation
-int previewSample = 0; // Initial sample selection for navigation
+int previewFolder = 0;  // Initial folder selection for navigation
+int previewSample = 0;  // Initial sample selection for navigation
 int selectedFolder = 0; // Remember selected folder
 int selectedSample = 0; // Remember selected sample
 
@@ -50,9 +51,9 @@ int encoderStepSize = 2; // Adjust the encoder step size for sensitive navigatio
 
 void setup()
 {
-  Wire.begin(); 
-  u8g2.begin();          
-  u8g2.setContrast(255); 
+  Wire.begin();
+  u8g2.begin();
+  u8g2.setContrast(255);
 
   Serial.begin(115200);
   Serial.println("Display initialized!");
@@ -71,35 +72,43 @@ void loop()
   // Handle button press to toggle between screens
   if (digitalRead(BUTTON_PIN) == LOW)
   {
-    if (screenState == SCREEN_VOLUME) {
+    if (screenState == SCREEN_VOLUME)
+    {
       screenState = SCREEN_SAMPLE_FOLDER;
-    } else if (screenState == SCREEN_SAMPLE_FOLDER) {
+    }
+    else if (screenState == SCREEN_SAMPLE_FOLDER)
+    {
       screenState = SCREEN_VOLUME;
       previewFolder = selectedFolder; // Reset preview to last selected
       previewSample = selectedSample; // Reset preview to last selected
-    } else if (screenState == SCREEN_SAMPLE_LIST) {
+    }
+    else if (screenState == SCREEN_SAMPLE_LIST)
+    {
       screenState = SCREEN_SAMPLE_FOLDER;
     }
     encoder.clearCount(); // Reset encoder count when switching screens
-    updateScreen = true; // Ensure screen update when switching back to volume screen
-    delay(300); // Debounce delay
+    updateScreen = true;  // Ensure screen update when switching back to volume screen
+    delay(300);           // Debounce delay
   }
 
   // Handle encoder button press for sample selection and switch back to volume screen
   if (digitalRead(ENCODER_SW) == LOW)
   {
-    if (screenState == SCREEN_SAMPLE_FOLDER) {
+    if (screenState == SCREEN_SAMPLE_FOLDER)
+    {
       // Move to sample list screen
       screenState = SCREEN_SAMPLE_LIST;
       encoder.clearCount();
       updateScreen = true;
-    } else if (screenState == SCREEN_SAMPLE_LIST) {
+    }
+    else if (screenState == SCREEN_SAMPLE_LIST)
+    {
       // Confirm selection and switch back to volume screen
       screenState = SCREEN_VOLUME;
       selectedFolder = previewFolder; // Store selected folder
       selectedSample = previewSample; // Store selected sample
-      updateScreen = true; // Trigger screen update on return to volume screen
-      delay(300); // Debounce delay
+      updateScreen = true;            // Trigger screen update on return to volume screen
+      delay(300);                     // Debounce delay
     }
   }
 
@@ -126,7 +135,7 @@ void loop()
 
       // Reset encoder count after processing movement
       encoder.clearCount();
-      
+
       updateScreen = true; // Trigger screen update on folder selection change
     }
   }
@@ -148,7 +157,7 @@ void loop()
 
       // Reset encoder count after processing movement
       encoder.clearCount();
-      
+
       updateScreen = true; // Trigger screen update on sample selection change
     }
   }
@@ -187,7 +196,7 @@ void loop()
       }
 
       u8g2.setFont(unibody_8);
-      u8g2.drawStr(128 - 5 - u8g2.getStrWidth("Sample Library"), 18, "Sample Library");  
+      u8g2.drawStr(128 - 5 - u8g2.getStrWidth("Sample Library"), 18, "Sample Library");
       u8g2.drawStr(128 - 5 - u8g2.getStrWidth(sampleFolder[selectedFolder]), 128 - 40, sampleFolder[selectedFolder]);
       u8g2.setFont(unibody_16);
       u8g2.drawStr(128 - 5 - u8g2.getStrWidth(sampleArrays[selectedFolder][selectedSample]), 128 - 20, sampleArrays[selectedFolder][selectedSample]);
@@ -210,7 +219,7 @@ void loop()
           u8g2.drawStr(5, y, sampleFolder[index]);
           if (i == 0)
           {
-            u8g2.drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6); 
+            u8g2.drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6);
           }
         }
       }
@@ -224,7 +233,7 @@ void loop()
       int verticalSpacing = 5;
       int baseY = 128 - 6 * (lineHeight + verticalSpacing);
 
-      const char** currentSamples = sampleArrays[previewFolder];
+      const char **currentSamples = sampleArrays[previewFolder];
       int sampleCount = sampleCounts[previewFolder];
 
       for (int i = -1; i <= 4; ++i)
@@ -236,7 +245,7 @@ void loop()
           u8g2.drawStr(5, y, currentSamples[index]);
           if (i == 0)
           {
-            u8g2.drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6); 
+            u8g2.drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6);
           }
         }
       }
