@@ -1,262 +1,252 @@
-#include <Arduino.h>
-#include <U8g2lib.h>
+// #include <Control_Surface.h>
 #include <Wire.h>
-#include <ESP32Encoder.h>
+#include <Adafruit_MCP23X17.h>
 
-#include "font/unibody_8.h"
-#include "font/unibody_16.h"
+#include <pins.h>
 
-U8G2_SH1107_PIMORONI_128X128_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
-
-#define ENCODER_DT 2
-#define ENCODER_CLK 4
-#define ENCODER_SW 15
-#define BUTTON_PIN 5
-
-ESP32Encoder encoder;
-
-int VolumeIn = 51; // Start at 40% (51 out of 128)
-int screenHeight = 128;
-int screenWidth = 128;
-
-enum ScreenState
+int trackMcp[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+Adafruit_MCP23X17 mcp0;
+Adafruit_MCP23X17 *getMcpForTrack(int track)
 {
-  SCREEN_VOLUME,
-  SCREEN_SAMPLE_FOLDER,
-  SCREEN_SAMPLE_LIST
-};
+  // return (trackMcp[track] == 0) ? &mcp0 : &mcp1;
+  return &mcp0;
+}
 
-ScreenState screenState = SCREEN_VOLUME;
+int currentTrack = 0;
+bool muted_tracks[8] = {false};
+bool soloed_tracks[8] = {false};
+int faderValues[8] = {0};
 
-const char *sampleFolder[] = {"1 Kick >", "2 Snare >", "3 Clap >", "4 Closed Hihat >", "5 Open Hihat >", "6 Tom >", "9 Percussions >"};
-const char *kickSamples[] = {"1974 Kick", "808 Boom", "Afrofunk Kick", "Big Kick", "Boombap Kick", "Box Kick", "Crusty Kick", "Deep Kick"};
-const char *snareSamples[] = {"1974 Snare", "909 Snare", "Afrobeat Snare", "Afrofunk Snare", "Air Snare", "Boombap Snare", "Brostep Snare", "Brush Snare"};
-const char *clapSamples[] = {"808 Clap", "909 Clap", "Analog Clap", "Boogie Clap", "Clap Trap", "Disco Clap", "DMX Clap", "Fingersnap"};
-const char *closedHihatSamples[] = {"1974 Hihat", "Afrofunk Hihat", "Boombap Hihat", "Crisp Hihat", "Dusty Hihat", "French Hihat", "Funk Hihat", "Hiphop Hihat"};
-const char *openHihatSamples[] = {"626 Open", "707 Open", "808 Open", "909 Open", "Bright Open", "Cymbal Open", "DMX Open", "French Open"};
-const char *tomSamples[] = {"Analog Tom", "Block Tom", "Brush Tom", "Chip Tom", "Electro Tom", "Room Tom", "Small Tom", "Syndrum"};
-const char *percussionsSamples[] = {"Bongo High", "Bongo Low", "Cabasa", "Conga High", "Conga Mid", "Cowbell High", "Cowbell Tight", "Cowbell"};
+// USBMIDI_Interface midi;
+// CCPotentiometer pot0{POT0, MIDI_CC::General_Purpose_Controller_1};
+// CCPotentiometer pot1{POT1, MIDI_CC::General_Purpose_Controller_2};
+// CCPotentiometer pot2{POT2, MIDI_CC::General_Purpose_Controller_3};
+// CCPotentiometer pot3{POT3, MIDI_CC::General_Purpose_Controller_4};
+// CCPotentiometer pot4{POT4, MIDI_CC::General_Purpose_Controller_5};
 
-const char **sampleArrays[] = {kickSamples, snareSamples, clapSamples, closedHihatSamples, openHihatSamples, tomSamples, percussionsSamples};
-const int sampleCounts[] = {8, 8, 8, 8, 8, 8, 8}; // Number of samples in each category
+// Bank<4> bank(1);
+// Bankable::CCPotentiometer fader[]{
+//     {bank, FADER_POT, 1},
+// };
 
-int previewFolder = 0;  // Initial folder selection for navigation
-int previewSample = 0;  // Initial sample selection for navigation
-int selectedFolder = 0; // Remember selected folder
-int selectedSample = 0; // Remember selected sample
-
-bool updateScreen = true; // Flag to control screen update
-
-int encoderStepSize = 2; // Adjust the encoder step size for sensitive navigation
+void lightTrackLed();
+void updateTrack(int trackId, bool mute_pressed, bool solo_pressed);
+void switchToTrack(int trackId);
+void boot();
+void selected_led(int selected);
+void mute_led(int track);
+void solo_led(int track);
+void moveTo(int targetPosition);
 
 void setup()
 {
-  Wire.begin();
-  u8g2.begin();
-  u8g2.setContrast(255);
-
   Serial.begin(115200);
-  Serial.println("Display initialized!");
+  // delay(10000);
+  Serial.println("Starting setup");
+  // Control_Surface.begin();
+  Wire.begin();
 
-  ESP32Encoder::useInternalWeakPullResistors = puType::up;
+  mcp0.begin_I2C(0x20);
+  for (int i = 0; i < 16; i++)
+  {
+    if (i == 2 || i == 6 || i == 10 || i == 14)
+    {
+      mcp0.pinMode(i, INPUT_PULLUP);
+    }
+    else
+    {
+      mcp0.pinMode(i, OUTPUT);
+    }
+  }
 
-  encoder.attachHalfQuad(ENCODER_DT, ENCODER_CLK);
-  encoder.clearCount();
+  // pinMode(FADER_FORWARD, OUTPUT);
+  // pinMode(FADER_REVERSE, OUTPUT);
+  // pinMode(FADER_SPEED, OUTPUT);
 
-  pinMode(ENCODER_SW, INPUT_PULLUP);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  // pinMode(BUTTON_MUTE, INPUT_PULLUP);
+  // pinMode(LED_MUTE, OUTPUT);
+  // pinMode(BUTTON_SOLO, INPUT_PULLUP);
+  // pinMode(LED_SOLO, OUTPUT);
+
+  boot();
 }
 
 void loop()
 {
-  // Handle button press to toggle between screens
-  if (digitalRead(BUTTON_PIN) == LOW)
-  {
-    if (screenState == SCREEN_VOLUME)
-    {
-      screenState = SCREEN_SAMPLE_FOLDER;
-    }
-    else if (screenState == SCREEN_SAMPLE_FOLDER)
-    {
-      screenState = SCREEN_VOLUME;
-      previewFolder = selectedFolder; // Reset preview to last selected
-      previewSample = selectedSample; // Reset preview to last selected
-    }
-    else if (screenState == SCREEN_SAMPLE_LIST)
-    {
-      screenState = SCREEN_SAMPLE_FOLDER;
-    }
-    encoder.clearCount(); // Reset encoder count when switching screens
-    updateScreen = true;  // Ensure screen update when switching back to volume screen
-    delay(300);           // Debounce delay
-  }
+  // Serial.print("Current Track: ");
+  // Serial.print("\b");
+  // Serial.print(currentTrack);
+  // Control_Surface.loop();
 
-  // Handle encoder button press for sample selection and switch back to volume screen
-  if (digitalRead(ENCODER_SW) == LOW)
+  // bool mute_pressed = digitalRead(BUTTON_MUTE) == LOW;
+  // bool solo_pressed = digitalRead(BUTTON_SOLO) == LOW;
+
+  // digitalWrite(LED_MUTE, mute_pressed ? HIGH : LOW);
+  // digitalWrite(LED_SOLO, solo_pressed ? HIGH : LOW);
+
+  for (int i = 0; i < 4; i++)
   {
-    if (screenState == SCREEN_SAMPLE_FOLDER)
+    if (getMcpForTrack(i)->digitalRead(TRACK_1_BUTTON_SELECT + (i * 4)) == LOW)
     {
-      // Move to sample list screen
-      screenState = SCREEN_SAMPLE_LIST;
-      encoder.clearCount();
-      updateScreen = true;
-    }
-    else if (screenState == SCREEN_SAMPLE_LIST)
-    {
-      // Confirm selection and switch back to volume screen
-      screenState = SCREEN_VOLUME;
-      selectedFolder = previewFolder; // Store selected folder
-      selectedSample = previewSample; // Store selected sample
-      updateScreen = true;            // Trigger screen update on return to volume screen
-      delay(300);                     // Debounce delay
+      Serial.println("Track " + String(i) + " selected");
+      // updateTrack(i, mute_pressed, solo_pressed);
+      updateTrack(i, false, false);
     }
   }
 
-  // Update based on screen state
-  if (screenState == SCREEN_VOLUME)
-  {
-    // Volume screen logic
-    VolumeIn = encoder.getCount();
-  }
-  else if (screenState == SCREEN_SAMPLE_FOLDER)
-  {
-    // Folder selection screen logic
-    int encoderChange = encoder.getCount();
-    if (encoderChange != 0)
-    {
-      int steps = encoderChange / encoderStepSize;
-      previewFolder += steps;
-
-      // Ensure previewFolder stays within valid range
-      if (previewFolder < 0)
-        previewFolder = 0;
-      else if (previewFolder >= sizeof(sampleFolder) / sizeof(sampleFolder[0]))
-        previewFolder = sizeof(sampleFolder) / sizeof(sampleFolder[0]) - 1;
-
-      // Reset encoder count after processing movement
-      encoder.clearCount();
-
-      updateScreen = true; // Trigger screen update on folder selection change
-    }
-  }
-  else if (screenState == SCREEN_SAMPLE_LIST)
-  {
-    // Sample selection screen logic
-    int encoderChange = encoder.getCount();
-    if (encoderChange != 0)
-    {
-      int steps = encoderChange / encoderStepSize;
-      previewSample += steps;
-
-      // Ensure previewSample stays within valid range
-      int sampleCount = sampleCounts[previewFolder];
-      if (previewSample < 0)
-        previewSample = 0;
-      else if (previewSample >= sampleCount)
-        previewSample = sampleCount - 1;
-
-      // Reset encoder count after processing movement
-      encoder.clearCount();
-
-      updateScreen = true; // Trigger screen update on sample selection change
-    }
-  }
-
-  // Render the display based on screen state and update condition
-  u8g2.firstPage();
-
-  do
-  {
-    u8g2.drawBox(116, 0, 2, 5);
-
-    if (screenState == SCREEN_VOLUME)
-    {
-      int numberOfRectangles = 16;
-      int rectHeight = 4;
-      int verticalSpacing = (screenHeight - (numberOfRectangles * rectHeight)) / (numberOfRectangles - 1);
-
-      int activeRectangles = map(VolumeIn, -64, 64, 0, numberOfRectangles);
-
-      for (int i = 0; i < numberOfRectangles; i++)
-      {
-        int rectY = screenHeight - ((i + 1) * (rectHeight + verticalSpacing) - verticalSpacing);
-        int rectWidth = 0 + i * 1.3;
-        if (i < activeRectangles)
-        {
-          u8g2.setDrawColor(1);
-          u8g2.drawBox(0, rectY, rectWidth, rectHeight);
-        }
-        else
-        {
-          for (int j = 0; j < rectWidth; j += 3)
-          {
-            u8g2.drawLine(j, rectY, j, rectY + rectHeight);
-          }
-        }
-      }
-
-      u8g2.setFont(unibody_8);
-      u8g2.drawStr(128 - 5 - u8g2.getStrWidth("Sample Library"), 18, "Sample Library");
-      u8g2.drawStr(128 - 5 - u8g2.getStrWidth(sampleFolder[selectedFolder]), 128 - 40, sampleFolder[selectedFolder]);
-      u8g2.setFont(unibody_16);
-      u8g2.drawStr(128 - 5 - u8g2.getStrWidth(sampleArrays[selectedFolder][selectedSample]), 128 - 20, sampleArrays[selectedFolder][selectedSample]);
-    }
-    else if (screenState == SCREEN_SAMPLE_FOLDER)
-    {
-      u8g2.setFont(unibody_8);
-      u8g2.drawStr(128 - 5 - u8g2.getStrWidth("Back"), 18, "Back");
-
-      int lineHeight = u8g2.getAscent() - u8g2.getDescent();
-      int verticalSpacing = 5;
-      int baseY = 128 - 6 * (lineHeight + verticalSpacing);
-
-      for (int i = -1; i <= 4; ++i)
-      {
-        int index = previewFolder + i;
-        if (index >= 0 && index < (sizeof(sampleFolder) / sizeof(sampleFolder[0])))
-        {
-          int y = baseY + (i + 1) * (lineHeight + verticalSpacing);
-          u8g2.drawStr(5, y, sampleFolder[index]);
-          if (i == 0)
-          {
-            u8g2.drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6);
-          }
-        }
-      }
-    }
-    else if (screenState == SCREEN_SAMPLE_LIST)
-    {
-      u8g2.setFont(unibody_8);
-      u8g2.drawStr(128 - 5 - u8g2.getStrWidth("Back"), 18, "Back");
-
-      int lineHeight = u8g2.getAscent() - u8g2.getDescent();
-      int verticalSpacing = 5;
-      int baseY = 128 - 6 * (lineHeight + verticalSpacing);
-
-      const char **currentSamples = sampleArrays[previewFolder];
-      int sampleCount = sampleCounts[previewFolder];
-
-      for (int i = -1; i <= 4; ++i)
-      {
-        int index = previewSample + i;
-        if (index >= 0 && index < sampleCount)
-        {
-          int y = baseY + (i + 1) * (lineHeight + verticalSpacing);
-          u8g2.drawStr(5, y, currentSamples[index]);
-          if (i == 0)
-          {
-            u8g2.drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6);
-          }
-        }
-      }
-    }
-
-  } while (u8g2.nextPage());
-
-  if (updateScreen)
-  {
-    updateScreen = false; // Reset update flag
-  }
-
-  delay(100);
+  lightTrackLed();
 }
+
+void lightTrackLed()
+{
+  selected_led(-1);
+  mute_led(0);
+  solo_led(0);
+  selected_led(currentTrack);
+
+  for (int i = 0; i < 8; i++)
+  {
+    if (muted_tracks[i])
+    {
+      mute_led(i + 1);
+    }
+    if (soloed_tracks[i])
+    {
+      solo_led(i + 1);
+    }
+  }
+}
+
+void updateTrack(int trackId, bool mute_pressed, bool solo_pressed)
+{
+  if (!mute_pressed && !solo_pressed)
+  {
+    // faderValues[currentTrack] = fader[0].getValue();
+    currentTrack = trackId;
+    // bank.select(currentTrack);
+    switchToTrack(currentTrack);
+    return;
+  }
+
+  if (mute_pressed)
+  {
+    muted_tracks[trackId] = !muted_tracks[trackId];
+    Serial.println("Mute Track: " + String(trackId) + " - " + String(muted_tracks[trackId]));
+  }
+  if (solo_pressed)
+  {
+    soloed_tracks[trackId] = !soloed_tracks[trackId];
+    Serial.println("Solo Track: " + String(trackId) + " - " + String(soloed_tracks[trackId]));
+  }
+}
+
+void switchToTrack(int trackId)
+{
+  Serial.println("Switching to Track: " + String(trackId));
+
+  if (faderValues[trackId])
+  {
+    // moveTo(faderValues[trackId] * 8);
+  }
+  else
+  {
+    Serial.println("No value");
+  }
+}
+
+void boot()
+{
+  int speed = 100;
+
+  for (int iter = 0; iter <= 10; iter++)
+  {
+    for (int step = 0; step < 4; step++)
+    {
+      selected_led(-1);
+      mute_led(0);
+      solo_led(0);
+
+      selected_led(step);
+      // mute_led(step);
+      // solo_led(step);
+
+      delay(speed);
+    }
+  }
+
+  selected_led(-1);
+  mute_led(0);
+  solo_led(0);
+}
+
+void selected_led(int selected)
+{
+  if (selected == -1)
+  {
+    for (int i = 0; i < 4; i++)
+    {
+      int ledPin = TRACK_1_LED_SELECTED + (i * 4);
+      getMcpForTrack(i)->digitalWrite(ledPin, LOW);
+    }
+    return;
+  }
+  for (int i = 0; i < 4; i++)
+  {                                                    // Loop only for 4 tracks as there are 4 steps in the boot sequence
+    int ledPin = TRACK_1_LED_SELECTED + ((i % 4) * 4); // Correct pin calculation
+    int state = (selected == i) ? HIGH : LOW;
+    // Serial.println("Setting pin " + String(ledPin) + " to " + String(state));
+    getMcpForTrack(i)->digitalWrite(ledPin, state);
+  }
+}
+
+void mute_led(int track)
+{
+  for (int i = 0; i < 4; i++)
+  {
+    int ledPin = TRACK_1_LED_MUTE + ((i % 4) * 4);
+    int state = (track == i + 1) ? HIGH : LOW;
+    getMcpForTrack(i)->digitalWrite(ledPin, state);
+  }
+}
+
+void solo_led(int track)
+{
+  for (int i = 0; i < 4; i++)
+  {
+    int ledPin = TRACK_1_LED_SOLO + ((i % 4) * 4);
+    int state = (track == i + 1) ? HIGH : LOW;
+    getMcpForTrack(i)->digitalWrite(ledPin, state);
+  }
+}
+
+// void moveTo(int targetPosition)
+// {
+//   Serial.println("Moving fader to " + String(targetPosition));
+//   int currentPosition = analogRead(FADER_POT);
+
+//   while (abs(targetPosition - currentPosition) > 50)
+//   {
+//     int distance = abs(targetPosition - currentPosition);
+//     int speed = map(distance, 0, 1023, 170, 220);
+
+//     if (targetPosition > currentPosition)
+//     {
+//       digitalWrite(FADER_FORWARD, HIGH);
+//       digitalWrite(FADER_REVERSE, LOW);
+//     }
+//     else
+//     {
+//       digitalWrite(FADER_FORWARD, LOW);
+//       digitalWrite(FADER_REVERSE, HIGH);
+//     }
+//     analogWrite(FADER_SPEED, speed);
+
+//     currentPosition = analogRead(FADER_POT);
+//     Serial.print("Current Position: ");
+//     Serial.println(currentPosition);
+//   }
+
+//   digitalWrite(FADER_FORWARD, LOW);
+//   digitalWrite(FADER_REVERSE, LOW);
+//   analogWrite(FADER_SPEED, 0);
+// }
