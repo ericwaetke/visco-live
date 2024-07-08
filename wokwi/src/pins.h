@@ -9,11 +9,11 @@
 // #define FADER_REVERSE 8
 // #define FADER_SPEED 6
 
-// Leonardo
-#define BUTTON_MUTE 4
-#define LED_MUTE 5
-#define BUTTON_SOLO 6
-#define LED_SOLO 7
+// MCP Other
+#define LED_MUTE 7
+#define BUTTON_MUTE 6
+#define LED_SOLO 5
+#define BUTTON_SOLO 4
 
 // MCP 0
 #define TRACK_1_LED_MUTE 0

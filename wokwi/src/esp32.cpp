@@ -3,9 +3,11 @@
 #include <Adafruit_MCP23X17.h>
 
 #include <pins.h>
+#include "i2c_scanner/i2c_scanner.h"
 
 int trackMcp[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 Adafruit_MCP23X17 mcp0;
+Adafruit_MCP23X17 mcp_other;
 Adafruit_MCP23X17 *getMcpForTrack(int track)
 {
   // return (trackMcp[track] == 0) ? &mcp0 : &mcp1;
@@ -16,6 +18,11 @@ int currentTrack = 0;
 bool muted_tracks[8] = {false};
 bool soloed_tracks[8] = {false};
 int faderValues[8] = {0};
+
+const int debounceDelay = 50; // milliseconds
+
+unsigned long lastDebounceTime[8] = {0}; // Array to store the last debounce time for each button
+bool lastButtonState[8] = {HIGH};        // Array to store the last button state
 
 // USBMIDI_Interface midi;
 // CCPotentiometer pot0{POT0, MIDI_CC::General_Purpose_Controller_1};
@@ -41,11 +48,15 @@ void moveTo(int targetPosition);
 void setup()
 {
   Serial.begin(115200);
-  // delay(10000);
+  delay(5000);
   Serial.println("Starting setup");
   // Control_Surface.begin();
   Wire.begin();
 
+  // Call the I2C scanner function
+  scanI2CBus();
+
+  // Tracks 1-4
   mcp0.begin_I2C(0x20);
   for (int i = 0; i < 16; i++)
   {
@@ -59,14 +70,16 @@ void setup()
     }
   }
 
+  // Mute, Solo, Select ...
+  mcp_other.begin_I2C(0x22);
+  mcp_other.pinMode(BUTTON_MUTE, INPUT_PULLUP);
+  mcp_other.pinMode(LED_MUTE, OUTPUT);
+  mcp_other.pinMode(BUTTON_SOLO, INPUT_PULLUP);
+  mcp_other.pinMode(LED_SOLO, OUTPUT);
+
   // pinMode(FADER_FORWARD, OUTPUT);
   // pinMode(FADER_REVERSE, OUTPUT);
   // pinMode(FADER_SPEED, OUTPUT);
-
-  // pinMode(BUTTON_MUTE, INPUT_PULLUP);
-  // pinMode(LED_MUTE, OUTPUT);
-  // pinMode(BUTTON_SOLO, INPUT_PULLUP);
-  // pinMode(LED_SOLO, OUTPUT);
 
   boot();
 }
@@ -78,19 +91,19 @@ void loop()
   // Serial.print(currentTrack);
   // Control_Surface.loop();
 
-  // bool mute_pressed = digitalRead(BUTTON_MUTE) == LOW;
-  // bool solo_pressed = digitalRead(BUTTON_SOLO) == LOW;
+  bool mute_pressed = mcp_other.digitalRead(BUTTON_MUTE) == LOW;
+  bool solo_pressed = mcp_other.digitalRead(BUTTON_SOLO) == LOW;
+  // mcp_other.digitalWrite(7, HIGH);
 
-  // digitalWrite(LED_MUTE, mute_pressed ? HIGH : LOW);
-  // digitalWrite(LED_SOLO, solo_pressed ? HIGH : LOW);
+  mcp_other.digitalWrite(LED_MUTE, mute_pressed ? HIGH : LOW);
+  mcp_other.digitalWrite(LED_SOLO, solo_pressed ? HIGH : LOW);
 
   for (int i = 0; i < 4; i++)
   {
     if (getMcpForTrack(i)->digitalRead(TRACK_1_BUTTON_SELECT + (i * 4)) == LOW)
     {
       Serial.println("Track " + String(i) + " selected");
-      // updateTrack(i, mute_pressed, solo_pressed);
-      updateTrack(i, false, false);
+      updateTrack(i, mute_pressed, solo_pressed);
     }
   }
 
