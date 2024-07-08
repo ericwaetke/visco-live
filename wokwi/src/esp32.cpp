@@ -138,6 +138,7 @@ void updateTrack(int trackId, bool mute_pressed, bool solo_pressed)
     currentTrack = trackId;
     // bank.select(currentTrack);
     switchToTrack(currentTrack);
+    delay(100);
     return;
   }
 
@@ -145,11 +146,13 @@ void updateTrack(int trackId, bool mute_pressed, bool solo_pressed)
   {
     muted_tracks[trackId] = !muted_tracks[trackId];
     Serial.println("Mute Track: " + String(trackId) + " - " + String(muted_tracks[trackId]));
+    delay(100);
   }
   if (solo_pressed)
   {
     soloed_tracks[trackId] = !soloed_tracks[trackId];
     Serial.println("Solo Track: " + String(trackId) + " - " + String(soloed_tracks[trackId]));
+    delay(100);
   }
 }
 
