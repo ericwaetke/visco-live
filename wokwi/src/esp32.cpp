@@ -6,6 +6,7 @@
 int trackMcp[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 Adafruit_MCP23X17 mcp0;
 Adafruit_MCP23X17 mcp_other;
+
 Adafruit_MCP23X17 *getMcpForTrack(int track)
 {
   return &mcp0;
@@ -16,8 +17,7 @@ bool muted_tracks[8] = {false};
 bool soloed_tracks[8] = {false};
 int faderValues[8] = {0};
 
-const int debounceDelay = 50; // milliseconds
-
+const int debounceDelay = 50;            // milliseconds
 unsigned long lastDebounceTime[8] = {0}; // Array to store the last debounce time for each button
 bool lastButtonState[8] = {HIGH};        // Array to store the last button state
 bool buttonState[8] = {HIGH};            // Array to store the current button state
@@ -28,8 +28,8 @@ void updateTrack(int trackId, bool mute_pressed, bool solo_pressed);
 void switchToTrack(int trackId);
 void boot();
 void selected_led(int selected);
-void mute_led(int track);
-void solo_led(int track);
+void mute_led(int track, bool state);
+void solo_led(int track, bool state);
 void moveTo(int targetPosition);
 bool debounceButton(int index, bool currentState);
 
@@ -39,7 +39,6 @@ void setup()
   delay(5000);
   Serial.println("Starting setup");
   Wire.begin();
-
   scanI2CBus();
 
   mcp0.begin_I2C(0x20);
@@ -112,21 +111,12 @@ bool debounceButton(int index, bool currentState)
 
 void lightTrackLed()
 {
-  selected_led(-1);
-  mute_led(0);
-  solo_led(0);
   selected_led(currentTrack);
 
   for (int i = 0; i < 8; i++)
   {
-    if (muted_tracks[i])
-    {
-      mute_led(i + 1);
-    }
-    if (soloed_tracks[i])
-    {
-      solo_led(i + 1);
-    }
+    mute_led(i + 1, muted_tracks[i]);
+    solo_led(i + 1, soloed_tracks[i]);
   }
 }
 
@@ -154,7 +144,6 @@ void updateTrack(int trackId, bool mute_pressed, bool solo_pressed)
 void switchToTrack(int trackId)
 {
   Serial.println("Switching to Track: " + String(trackId));
-
   if (faderValues[trackId])
   {
     // moveTo(faderValues[trackId] * 8);
@@ -174,76 +163,52 @@ void boot()
     for (int step = 0; step < 4; step++)
     {
       selected_led(-1);
-      mute_led(0);
-      solo_led(0);
-
+      mute_led(0, LOW);
+      solo_led(0, LOW);
       selected_led(step);
-
       delay(speed);
     }
   }
 
   selected_led(-1);
-  mute_led(0);
-  solo_led(0);
+  mute_led(0, LOW);
+  solo_led(0, LOW);
 }
 
 void selected_led(int selected)
 {
-  if (selected == -1)
-  {
-    for (int i = 0; i < 4; i++)
-    {
-      int ledPin = TRACK_1_LED_SELECTED + (i * 4);
-      getMcpForTrack(i)->digitalWrite(ledPin, LOW);
-    }
-    return;
-  }
   for (int i = 0; i < 4; i++)
   {
-    int ledPin = TRACK_1_LED_SELECTED + ((i % 4) * 4);
+    int ledPin = TRACK_1_LED_SELECTED + (i * 4);
     int state = (selected == i) ? HIGH : LOW;
     getMcpForTrack(i)->digitalWrite(ledPin, state);
   }
 }
 
-void mute_led(int track)
+void mute_led(int track, bool state)
 {
-  for (int i = 0; i < 4; i++)
-  {
-    int ledPin = TRACK_1_LED_MUTE + ((i % 4) * 4);
-    int state = (track == i + 1) ? HIGH : LOW;
-    getMcpForTrack(i)->digitalWrite(ledPin, state);
-  }
+  int ledPin = TRACK_1_LED_MUTE + ((track - 1) % 4) * 4;
+  getMcpForTrack((track - 1) / 4)->digitalWrite(ledPin, state ? HIGH : LOW);
 }
 
-void solo_led(int track)
+void solo_led(int track, bool state)
 {
-  for (int i = 0; i < 4; i++)
-  {
-    int ledPin = TRACK_1_LED_SOLO + ((i % 4) * 4);
-    int state = (track == i + 1) ? HIGH : LOW;
-    getMcpForTrack(i)->digitalWrite(ledPin, state);
-  }
+  int ledPin = TRACK_1_LED_SOLO + ((track - 1) % 4) * 4;
+  getMcpForTrack((track - 1) / 4)->digitalWrite(ledPin, state ? HIGH : LOW);
 }
 
-// void moveTo(int targetPosition)
-// {
+// void moveTo(int targetPosition) {
 //   Serial.println("Moving fader to " + String(targetPosition));
 //   int currentPosition = analogRead(FADER_POT);
 
-//   while (abs(targetPosition - currentPosition) > 50)
-//   {
+//   while (abs(targetPosition - currentPosition) > 50) {
 //     int distance = abs(targetPosition - currentPosition);
 //     int speed = map(distance, 0, 1023, 170, 220);
 
-//     if (targetPosition > currentPosition)
-//     {
+//     if (targetPosition > currentPosition) {
 //       digitalWrite(FADER_FORWARD, HIGH);
 //       digitalWrite(FADER_REVERSE, LOW);
-//     }
-//     else
-//     {
+//     } else {
 //       digitalWrite(FADER_FORWARD, LOW);
 //       digitalWrite(FADER_REVERSE, HIGH);
 //     }

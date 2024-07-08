@@ -50,6 +50,4 @@ void scanI2CBus()
 	{
 		Serial.println("done\n");
 	}
-
-	delay(5000); // Wait 5 seconds for next scan
 }
