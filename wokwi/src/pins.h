@@ -1,9 +1,9 @@
-// #define POT0 A0
-// #define POT1 A1
-// #define POT2 A2
-// #define POT3 A3
-// #define POT4 A4
-// #define FADER_POT A5
+#define POT0 4
+#define POT1 5
+#define POT2 6
+#define POT3 7
+#define POT4 15
+#define FADER_POT 16
 
 // #define FADER_FORWARD 7
 // #define FADER_REVERSE 8

@@ -1,10 +1,13 @@
 #include "track_control.h"
 #include "../led_control/led_control.h"
+#include "../midi_manager/midi_manager.h"
 
 int currentTrack = 0;
 bool muted_tracks[8] = {false};
 bool soloed_tracks[8] = {false};
 int faderValues[8] = {0};
+// Midi Volume (0-127)
+uint8_t track_volumes[8] = {0};
 
 void boot()
 {
@@ -38,13 +41,41 @@ void updateTrack(int trackId, bool mute_pressed, bool solo_pressed)
 
 	if (mute_pressed)
 	{
-		muted_tracks[trackId] = !muted_tracks[trackId];
-		Serial.println("Mute Track: " + String(trackId) + " - " + String(muted_tracks[trackId]));
+		mute_track(trackId, !muted_tracks[trackId]);
 	}
 	if (solo_pressed)
 	{
 		soloed_tracks[trackId] = !soloed_tracks[trackId];
-		Serial.println("Solo Track: " + String(trackId) + " - " + String(soloed_tracks[trackId]));
+	}
+}
+
+void mute_track(int track, bool state)
+{
+	muted_tracks[track] = state;
+	if (state)
+	{
+		// Set volume to 0
+		setTrackVolume(track, 0);
+	}
+	else
+	{
+		// Set volume to previous value
+		setTrackVolume(track, track_volumes[track]);
+	}
+}
+
+void solo_track(int track, bool state)
+{
+	soloed_tracks[track] = state;
+	if (state)
+	{
+		// Set volume to previous value
+		setTrackVolume(track, track_volumes[track]);
+	}
+	else
+	{
+		// Set volume to 0
+		setTrackVolume(track, 0);
 	}
 }
 
