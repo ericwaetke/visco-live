@@ -10,9 +10,9 @@ void boot()
 {
 	int speed = 100;
 
-	for (int iter = 0; iter <= 10; iter++)
+	for (int iter = 0; iter <= 4; iter++)
 	{
-		for (int step = 0; step < 4; step++)
+		for (int step = 0; step < 8; step++)
 		{
 			selected_led(-1);
 			mute_led(0, LOW);

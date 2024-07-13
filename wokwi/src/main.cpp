@@ -5,9 +5,7 @@
 #include "track_control/track_control.h"
 #include "led_control/led_control.h"
 #include "debounce/debounce.h"
-
-Adafruit_MCP23X17 mcp0;
-Adafruit_MCP23X17 mcp_other;
+#include "mcp_manager/mcp_manager.h"
 
 void setup()
 {
@@ -18,15 +16,19 @@ void setup()
   scanI2CBus();
 
   mcp0.begin_I2C(0x20);
+  mcp1.begin_I2C(0x24);
+
   for (int i = 0; i < 16; i++)
   {
     if (i == 2 || i == 6 || i == 10 || i == 14)
     {
       mcp0.pinMode(i, INPUT_PULLUP);
+      mcp1.pinMode(i, INPUT_PULLUP);
     }
     else
     {
       mcp0.pinMode(i, OUTPUT);
+      mcp1.pinMode(i, OUTPUT);
     }
   }
 
@@ -47,11 +49,11 @@ void loop()
   mcp_other.digitalWrite(LED_MUTE, mute_pressed ? HIGH : LOW);
   mcp_other.digitalWrite(LED_SOLO, solo_pressed ? HIGH : LOW);
 
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 8; i++)
   {
-    if (debounceButton(i, mcp0.digitalRead(TRACK_1_BUTTON_SELECT + (i * 4))))
+    if (debounceButton(i, getMcpForTrack(i)->digitalRead(TRACK_1_BUTTON_SELECT + ((i % 4) * 4))))
     {
-      Serial.println("Track " + String(i) + " selected");
+      Serial.println("Track " + String(i) + " muted");
       updateTrack(i, mute_pressed, solo_pressed);
     }
   }

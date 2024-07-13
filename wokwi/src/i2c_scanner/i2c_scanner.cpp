@@ -45,6 +45,8 @@ void scanI2CBus()
 	if (nDevices == 0)
 	{
 		Serial.println("No I2C devices found\n");
+		delay(5000); // wait 5 seconds for next scan
+		scanI2CBus();
 	}
 	else
 	{
