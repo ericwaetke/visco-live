@@ -1,6 +1,3 @@
 {
-  "recommendations": [
-    "vsciot-vscode.vscode-arduino",
-    "wokwi.wokwi-vscode"
-  ]
+	"recommendations": ["platformio.platformio-ide", "wokwi.wokwi-vscode"]
 }
