@@ -7,7 +7,7 @@ bool muted_tracks[8] = {false};
 bool soloed_tracks[8] = {false};
 int faderValues[8] = {0};
 // Midi Volume (0-127)
-uint8_t track_volumes[8] = {0};
+uint8_t track_volumes[8] = {64, 64, 64, 64, 64, 64, 64, 64};
 
 extern void setTrackVolume(uint8_t track, uint8_t volume);
 
@@ -47,7 +47,7 @@ void updateTrack(int trackId, bool mute_pressed, bool solo_pressed)
 	}
 	if (solo_pressed)
 	{
-		soloed_tracks[trackId] = !soloed_tracks[trackId];
+		solo_track(trackId);
 	}
 }
 
@@ -66,18 +66,39 @@ void mute_track(int track, bool state)
 	}
 }
 
-void solo_track(int track, bool state)
+void solo_track(int track)
 {
+	bool state = !soloed_tracks[track];
 	soloed_tracks[track] = state;
-	if (state)
+
+	// If no track is soloed, unmute all tracks
+	if (std::none_of(std::begin(soloed_tracks), std::end(soloed_tracks), [](bool b)
+					 { return b; }))
 	{
-		// Set volume to previous value
-		// setTrackVolume(track, track_volumes[track]);
+		for (int i = 0; i < 8; i++)
+		{
+			if (!muted_tracks[i])
+			{
+				setTrackVolume(i, track_volumes[i]);
+			}
+		}
+		return;
 	}
-	else
+
+	for (int i = 0; i < 8; i++)
 	{
-		// Set volume to 0
-		// setTrackVolume(track, 0);
+		Serial.println("Soloing Track: " + String(i));
+		if (!soloed_tracks[i] || muted_tracks[i])
+		{
+			Serial.println("Muting Track: " + String(i));
+			setTrackVolume(i, 0);
+			// return;
+		}
+		else
+		{
+			Serial.println("Unmuting Track: " + String(i));
+			setTrackVolume(i, track_volumes[i]);
+		}
 	}
 }
 

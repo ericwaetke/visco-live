@@ -69,8 +69,6 @@ void setup()
 void loop()
 {
   Control_Surface.loop();
-  Serial.print("Poti: ");
-  Serial.println(analogRead(4));
   bool mute_pressed = mcp_other.digitalRead(BUTTON_MUTE) == LOW;
   bool solo_pressed = mcp_other.digitalRead(BUTTON_SOLO) == LOW;
 
