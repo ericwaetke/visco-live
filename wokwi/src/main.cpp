@@ -1,25 +1,25 @@
 #include <Wire.h>
 #include <Adafruit_MCP23X17.h>
 #include <pins.h>
-#include "i2c_scanner/i2c_scanner.h"
-#include "track_control/track_control.h"
-#include "led_control/led_control.h"
-#include "debounce/debounce.h"
-#include "mcp_manager/mcp_manager.h"
+#include "i2c_scanner.h"
+#include "track_control.h"
+#include "led_control.h"
+#include "debounce.h"
+#include "mcp_manager.h"
 // #include "midi_manager/midi_manager.h"
 #include <Control_Surface.h>
 
 USBMIDI_Interface midi;
 CCPotentiometer pot0{POT0, MIDI_CC::General_Purpose_Controller_1};
-CCPotentiometer pot1{POT1, MIDI_CC::General_Purpose_Controller_2};
-CCPotentiometer pot2{POT2, MIDI_CC::General_Purpose_Controller_3};
-CCPotentiometer pot3{POT3, MIDI_CC::General_Purpose_Controller_4};
-CCPotentiometer pot4{POT4, MIDI_CC::General_Purpose_Controller_5};
+// CCPotentiometer pot1{POT1, MIDI_CC::General_Purpose_Controller_2};
+// CCPotentiometer pot2{POT2, MIDI_CC::General_Purpose_Controller_3};
+// CCPotentiometer pot3{POT3, MIDI_CC::General_Purpose_Controller_4};
+// CCPotentiometer pot4{POT4, MIDI_CC::General_Purpose_Controller_5};
 
-Bank<4> bank(1);
-Bankable::CCPotentiometer fader[]{
-    {bank, FADER_POT, 1},
-};
+// Bank<4> bank(1);
+// Bankable::CCPotentiometer fader[]{
+//     {bank, FADER_POT, 1},
+// };
 
 // Set volume of tracks 1–8
 void setTrackVolume(uint8_t track, uint8_t volume)
@@ -69,6 +69,8 @@ void setup()
 void loop()
 {
   Control_Surface.loop();
+  Serial.print("Poti: ");
+  Serial.println(analogRead(4));
   bool mute_pressed = mcp_other.digitalRead(BUTTON_MUTE) == LOW;
   bool solo_pressed = mcp_other.digitalRead(BUTTON_SOLO) == LOW;
 

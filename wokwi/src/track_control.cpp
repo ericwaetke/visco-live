@@ -1,5 +1,5 @@
 #include "track_control.h"
-#include "../led_control/led_control.h"
+#include "led_control.h"
 // #include "../midi_manager/midi_manager.h"
 
 int currentTrack = 0;
@@ -9,7 +9,7 @@ int faderValues[8] = {0};
 // Midi Volume (0-127)
 uint8_t track_volumes[8] = {0};
 
-// extern void setTrackVolume(uint8_t track, uint8_t volume);
+extern void setTrackVolume(uint8_t track, uint8_t volume);
 
 void boot()
 {
@@ -57,12 +57,12 @@ void mute_track(int track, bool state)
 	if (state)
 	{
 		// Set volume to 0
-		// setTrackVolume(track, 0);
+		setTrackVolume(track, 0);
 	}
 	else
 	{
 		// Set volume to previous value
-		// setTrackVolume(track, track_volumes[track]);
+		setTrackVolume(track, track_volumes[track]);
 	}
 }
 

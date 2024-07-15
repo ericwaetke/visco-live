@@ -1,7 +1,7 @@
 #include "led_control.h"
 #include <Adafruit_MCP23X17.h>
 #include <pins.h>
-#include "../mcp_manager/mcp_manager.h"
+#include "mcp_manager.h"
 
 extern int currentTrack;
 extern bool muted_tracks[8];
