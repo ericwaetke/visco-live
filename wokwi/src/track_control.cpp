@@ -1,6 +1,4 @@
 #include "track_control.h"
-#include "led_control.h"
-// #include "../midi_manager/midi_manager.h"
 
 int currentTrack = 0;
 bool muted_tracks[8] = {false};

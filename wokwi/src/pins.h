@@ -5,9 +5,9 @@
 #define POT4 15
 #define FADER_POT 16
 
-// #define FADER_FORWARD 7
-// #define FADER_REVERSE 8
-// #define FADER_SPEED 6
+#define FADER_FORWARD 43
+#define FADER_REVERSE 44
+#define FADER_SPEED 6
 
 // MCP Other
 #define LED_MUTE 7

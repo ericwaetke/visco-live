@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include <Adafruit_MCP23X17.h>
 
+#include "led_control.h"
+#include "fader_controller.h"
+
 extern Adafruit_MCP23X17 mcp0;
 extern Adafruit_MCP23X17 mcp_other;
 
