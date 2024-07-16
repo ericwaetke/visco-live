@@ -34,6 +34,7 @@ void updateTrack(int trackId, bool mute_pressed, bool solo_pressed)
 {
 	if (!mute_pressed && !solo_pressed)
 	{
+		faderValues[currentTrack] = analogRead(FADER_POT);
 		currentTrack = trackId;
 		switchToTrack(currentTrack);
 		return;
@@ -105,7 +106,7 @@ void switchToTrack(int trackId)
 	Serial.println("Switching to Track: " + String(trackId));
 	if (faderValues[trackId])
 	{
-		// moveTo(faderValues[trackId] * 8);
+		moveTo(faderValues[trackId]);
 	}
 	else
 	{

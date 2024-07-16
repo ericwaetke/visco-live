@@ -8,7 +8,6 @@ void moveTo(int targetPosition)
 	while (abs(targetPosition - currentPosition) > 50)
 	{
 		int distance = abs(targetPosition - currentPosition);
-		int speed = map(distance, 0, 1023, 170, 220);
 
 		if (targetPosition > currentPosition)
 		{
@@ -20,7 +19,8 @@ void moveTo(int targetPosition)
 			digitalWrite(FADER_FORWARD, LOW);
 			digitalWrite(FADER_REVERSE, HIGH);
 		}
-		analogWrite(FADER_SPEED, speed);
+		// analogWrite(FADER_SPEED, 3000);
+		digitalWrite(FADER_SPEED, HIGH);
 
 		currentPosition = analogRead(FADER_POT);
 		Serial.print("Current Position: ");
@@ -29,5 +29,6 @@ void moveTo(int targetPosition)
 
 	digitalWrite(FADER_FORWARD, LOW);
 	digitalWrite(FADER_REVERSE, LOW);
-	analogWrite(FADER_SPEED, 0);
+	// analogWrite(FADER_SPEED, 0);
+	digitalWrite(FADER_SPEED, LOW);
 }
