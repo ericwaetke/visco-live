@@ -1,3 +1,4 @@
+#include "esp32-hal.h"
 #include <Wire.h>
 #include <Adafruit_MCP23X17.h>
 #include <pins.h>
@@ -62,6 +63,11 @@ void setup()
   mcp_other.pinMode(LED_MUTE, OUTPUT);
   mcp_other.pinMode(BUTTON_SOLO, INPUT_PULLUP);
   mcp_other.pinMode(LED_SOLO, OUTPUT);
+
+  pinMode(FADER_FORWARD, OUTPUT);
+  pinMode(FADER_REVERSE, OUTPUT);
+  pinMode(FADER_SPEED, OUTPUT);
+  analogWriteFrequency(FADER_SPEED, 1000);
 
   boot();
 }

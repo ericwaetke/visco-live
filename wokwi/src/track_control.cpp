@@ -104,12 +104,5 @@ void solo_track(int track)
 void switchToTrack(int trackId)
 {
 	Serial.println("Switching to Track: " + String(trackId));
-	if (faderValues[trackId])
-	{
-		moveTo(faderValues[trackId]);
-	}
-	else
-	{
-		Serial.println("No value");
-	}
+  moveTo(faderValues[trackId]);
 }
