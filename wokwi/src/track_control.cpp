@@ -13,7 +13,7 @@ void boot()
 {
 	int speed = 100;
 
-	for (int iter = 0; iter <= 4; iter++)
+	for (int iter = 0; iter <= 2; iter++)
 	{
 		for (int step = 0; step < 8; step++)
 		{

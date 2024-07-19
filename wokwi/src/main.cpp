@@ -20,116 +20,123 @@ CCPotentiometer pot0{POT0, MIDI_CC::General_Purpose_Controller_1};
 
 Bank<4> bank(1);
 Bankable::CCPotentiometer fader[]{
-    {bank, FADER_POT, 1},
+	{bank, FADER_POT, 1},
 };
 
 // Set volume of tracks 1–8
 void setTrackVolume(uint8_t track, uint8_t volume)
 {
-  MIDIAddress controller = {MIDI_CC::Sound_Controller_1 + (track - 1)};
-  uint8_t value = volume;
-  midi.sendControlChange(controller, value);
+	MIDIAddress controller = {MIDI_CC::Sound_Controller_1 + (track - 1)};
+	uint8_t value = volume;
+	midi.sendControlChange(controller, value);
 }
 
-U8G2_SH1107_PIMORONI_128X128_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+U8G2_SH1107_PIMORONI_128X128_1_HW_I2C display_1(U8G2_R1, U8X8_PIN_NONE);
+U8G2_SH1107_PIMORONI_128X128_1_HW_I2C display_2(U8G2_R3, U8X8_PIN_NONE);
 // Select I2C BUS
-void TCA9548A(uint8_t bus){
-  Wire.beginTransmission(0x70);  // TCA9548A address
-  Wire.write(1 << bus);          // send byte to select bus
-  Wire.endTransmission();
-  Serial.print(bus);
+void TCA9548A(uint8_t bus)
+{
+	Wire.beginTransmission(0x70); // TCA9548A address
+	Wire.write(1 << bus);		  // send byte to select bus
+	Wire.endTransmission();
+	Serial.print(bus);
 }
 
 void setup()
 {
-  Serial.begin(115200);
-  delay(5000);
-  Serial.println("Starting setup");
-  Wire.begin();
-  Serial.println("Began wire");
-  Control_Surface.begin();
-  Serial.println("Control surface started");
-  scanI2CBus();
+	Serial.begin(115200);
+	delay(5000);
+	Serial.println("Starting setup");
+	Wire.begin();
+	Serial.println("Began wire");
+	Control_Surface.begin();
+	Serial.println("Control surface started");
+	scanI2CBus();
 
-  mcp0.begin_I2C(0x20);
-  mcp1.begin_I2C(0x24);
+	mcp0.begin_I2C(0x20);
+	mcp1.begin_I2C(0x24);
 
-  for (int i = 0; i < 16; i++)
-  {
-    if (i == 2 || i == 6 || i == 10 || i == 14)
-    {
-      mcp0.pinMode(i, INPUT_PULLUP);
-      mcp1.pinMode(i, INPUT_PULLUP);
-    }
-    else
-    {
-      mcp0.pinMode(i, OUTPUT);
-      mcp1.pinMode(i, OUTPUT);
-    }
-  }
+	for (int i = 0; i < 16; i++)
+	{
+		if (i == 2 || i == 6 || i == 10 || i == 14)
+		{
+			mcp0.pinMode(i, INPUT_PULLUP);
+			mcp1.pinMode(i, INPUT_PULLUP);
+		}
+		else
+		{
+			mcp0.pinMode(i, OUTPUT);
+			mcp1.pinMode(i, OUTPUT);
+		}
+	}
 
-  mcp_other.begin_I2C(0x22);
-  mcp_other.pinMode(BUTTON_MUTE, INPUT_PULLUP);
-  mcp_other.pinMode(LED_MUTE, OUTPUT);
-  mcp_other.pinMode(BUTTON_SOLO, INPUT_PULLUP);
-  mcp_other.pinMode(LED_SOLO, OUTPUT);
+	mcp_other.begin_I2C(0x22);
+	mcp_other.pinMode(BUTTON_MUTE, INPUT_PULLUP);
+	mcp_other.pinMode(LED_MUTE, OUTPUT);
+	mcp_other.pinMode(BUTTON_SOLO, INPUT_PULLUP);
+	mcp_other.pinMode(LED_SOLO, OUTPUT);
 
-  pinMode(FADER_FORWARD, OUTPUT);
-  pinMode(FADER_REVERSE, OUTPUT);
-  pinMode(FADER_SPEED, OUTPUT);
-  analogWriteFrequency(FADER_SPEED, 1000);
+	pinMode(FADER_FORWARD, OUTPUT);
+	pinMode(FADER_REVERSE, OUTPUT);
+	pinMode(FADER_SPEED, OUTPUT);
+	analogWriteFrequency(FADER_SPEED, 1000);
 
-  // Init OLED display on bus number 0
-  TCA9548A(0);
-  if(!u8g2.begin()) {
-    Serial.println(F("OLED allocation failed"));
-    for(;;);
-  }
-  Serial.println("Display 1 initialized");
+	// Init OLED display on bus number 0
+	TCA9548A(0);
+	if (!display_1.begin())
+	{
+		Serial.println(F("OLED allocation failed"));
+		for (;;)
+			;
+	}
+	Serial.println("Display 1 initialized");
 
-  // Init OLED display on bus number 1
-  TCA9548A(1);
-  if(!u8g2.begin()) {
-    Serial.println(F("OLED allocation failed"));
-    for(;;);
-  }
-  Serial.println("Display 2 initialized");
+	// Init OLED display on bus number 1
+	TCA9548A(1);
+	if (!display_2.begin())
+	{
+		Serial.println(F("OLED allocation failed"));
+		for (;;)
+			;
+	}
+	Serial.println("Display 2 initialized");
 
-  boot();
+	boot();
 }
 
 void loop()
 {
-  TCA9548A(0);
-  u8g2.firstPage();
-  do {
-    u8g2.setFont(u8g2_font_ncenB14_tr);
-    u8g2.drawStr(0,15,"Hello World!");
-  } while ( u8g2.nextPage() );
+	TCA9548A(0);
+	display_1.firstPage();
+	do
+	{
+		display_1.setFont(u8g2_font_ncenB14_tr);
+		display_1.drawStr(0, 15, "Hello World!");
+	} while (display_1.nextPage());
 
-  TCA9548A(1);
-  u8g2.firstPage();
-  do {
-    u8g2.setFont(u8g2_font_ncenB14_tr);
-    u8g2.drawStr(0,15,"Display 2!");
-  } while ( u8g2.nextPage() );
+	TCA9548A(1);
+	display_2.firstPage();
+	do
+	{
+		display_2.setFont(u8g2_font_ncenB14_tr);
+		display_2.drawStr(0, 15, "Display 2!");
+	} while (display_2.nextPage());
 
-  Control_Surface.loop();
-  bool mute_pressed = mcp_other.digitalRead(BUTTON_MUTE) == LOW;
-  bool solo_pressed = mcp_other.digitalRead(BUTTON_SOLO) == LOW;
+	Control_Surface.loop();
+	bool mute_pressed = mcp_other.digitalRead(BUTTON_MUTE) == LOW;
+	bool solo_pressed = mcp_other.digitalRead(BUTTON_SOLO) == LOW;
 
-  mcp_other.digitalWrite(LED_MUTE, mute_pressed ? HIGH : LOW);
-  mcp_other.digitalWrite(LED_SOLO, solo_pressed ? HIGH : LOW);
+	mcp_other.digitalWrite(LED_MUTE, mute_pressed ? HIGH : LOW);
+	mcp_other.digitalWrite(LED_SOLO, solo_pressed ? HIGH : LOW);
 
-  for (int i = 0; i < 8; i++)
-  {
-    if (debounceButton(i, getMcpForTrack(i)->digitalRead(TRACK_1_BUTTON_SELECT + ((i % 4) * 4))))
-    {
-      Serial.println("Track " + String(i) + " muted");
-      updateTrack(i, mute_pressed, solo_pressed);
-    }
-  }
+	for (int i = 0; i < 8; i++)
+	{
+		if (debounceButton(i, getMcpForTrack(i)->digitalRead(TRACK_1_BUTTON_SELECT + ((i % 4) * 4))))
+		{
+			Serial.println("Track " + String(i) + " muted");
+			updateTrack(i, mute_pressed, solo_pressed);
+		}
+	}
 
-  lightTrackLed();
+	lightTrackLed();
 }
-
