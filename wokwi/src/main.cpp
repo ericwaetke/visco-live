@@ -9,6 +9,7 @@
 #include "mcp_manager.h"
 // #include "midi_manager/midi_manager.h"
 #include <Control_Surface.h>
+#include <U8g2lib.h>
 
 USBMIDI_Interface midi;
 CCPotentiometer pot0{POT0, MIDI_CC::General_Purpose_Controller_1};
@@ -28,6 +29,15 @@ void setTrackVolume(uint8_t track, uint8_t volume)
   MIDIAddress controller = {MIDI_CC::Sound_Controller_1 + (track - 1)};
   uint8_t value = volume;
   midi.sendControlChange(controller, value);
+}
+
+U8G2_SH1107_PIMORONI_128X128_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+// Select I2C BUS
+void TCA9548A(uint8_t bus){
+  Wire.beginTransmission(0x70);  // TCA9548A address
+  Wire.write(1 << bus);          // send byte to select bus
+  Wire.endTransmission();
+  Serial.print(bus);
 }
 
 void setup()
@@ -69,11 +79,41 @@ void setup()
   pinMode(FADER_SPEED, OUTPUT);
   analogWriteFrequency(FADER_SPEED, 1000);
 
+  // Init OLED display on bus number 0
+  TCA9548A(0);
+  if(!u8g2.begin()) {
+    Serial.println(F("OLED allocation failed"));
+    for(;;);
+  }
+  Serial.println("Display 1 initialized");
+
+  // Init OLED display on bus number 1
+  TCA9548A(1);
+  if(!u8g2.begin()) {
+    Serial.println(F("OLED allocation failed"));
+    for(;;);
+  }
+  Serial.println("Display 2 initialized");
+
   boot();
 }
 
 void loop()
 {
+  TCA9548A(0);
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_ncenB14_tr);
+    u8g2.drawStr(0,15,"Hello World!");
+  } while ( u8g2.nextPage() );
+
+  TCA9548A(1);
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_ncenB14_tr);
+    u8g2.drawStr(0,15,"Display 2!");
+  } while ( u8g2.nextPage() );
+
   Control_Surface.loop();
   bool mute_pressed = mcp_other.digitalRead(BUTTON_MUTE) == LOW;
   bool solo_pressed = mcp_other.digitalRead(BUTTON_SOLO) == LOW;
@@ -92,3 +132,4 @@ void loop()
 
   lightTrackLed();
 }
+
