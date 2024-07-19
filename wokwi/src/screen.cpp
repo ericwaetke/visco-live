@@ -32,16 +32,16 @@ const char *presetList[] = {"A Clean Start", "808 vs 909", "Bassline Timewarp", 
 const int presetCount = sizeof(presetList) / sizeof(presetList[0]);
 
 const char *presetSamples[][16] = {
-	{"1974 Kick", "808 Boom", "Afrofunk Kick", "Big Kick", "Boombap Kick", "Box Kick", "Crusty Kick", "Deep Kick",
-	 "1974 Snare", "909 Snare", "Afrobeat Snare", "Afrofunk Snare", "Air Snare", "Boombap Snare", "Brostep Snare", "Brush Snare"},
-	{"808 Boom", "909 Snare", "808 Clap", "Crisp Hihat", "French Open", "Small Tom", "Cabasa", "Conga Mid",
-	 "Box Kick", "Boombap Snare", "Boogie Clap", "Funk Hihat", "Bright Open", "Electro Tom", "Cowbell Tight", "Brush Snare"},
-	{"Afrofunk Kick", "Afrobeat Snare", "Analog Clap", "Boombap Hihat", "DMX Open", "Room Tom", "Cowbell High", "Conga High",
-	 "Big Kick", "Air Snare", "Disco Clap", "Dusty Hihat", "626 Open", "Analog Tom", "Bongo Low", "French Hihat"},
-	{"Deep Kick", "Brostep Snare", "DMX Clap", "Dusty Hihat", "Cymbal Open", "Syndrum", "Cowbell", "Bongo High",
-	 "Boombap Kick", "Boombap Snare", "Fingersnap", "Afrofunk Hihat", "707 Open", "Brush Tom", "Bongo Low", "Funk Hihat"},
-	{"Crusty Kick", "Brush Snare", "Analog Clap", "Hiphop Hihat", "808 Open", "Electro Tom", "Cabasa", "Conga High",
-	 "Big Kick", "Afrobeat Snare", "Clap Trap", "Crisp Hihat", "Bright Open", "Analog Tom", "Cowbell Tight", "French Hihat"}};
+    {"1974 Kick", "808 Boom", "Afrofunk Kick", "Big Kick", "Boombap Kick", "Box Kick", "Crusty Kick", "Deep Kick",
+     "1974 Snare", "909 Snare", "Afrobeat Snare", "Afrofunk Snare", "Air Snare", "Boombap Snare", "Brostep Snare", "Brush Snare"},
+    {"808 Boom", "909 Snare", "808 Clap", "Crisp Hihat", "French Open", "Small Tom", "Cabasa", "Conga Mid",
+     "Box Kick", "Boombap Snare", "Boogie Clap", "Funk Hihat", "Bright Open", "Electro Tom", "Cowbell Tight", "Brush Snare"},
+    {"Afrofunk Kick", "Afrobeat Snare", "Analog Clap", "Boombap Hihat", "DMX Open", "Room Tom", "Cowbell High", "Conga High",
+     "Big Kick", "Air Snare", "Disco Clap", "Dusty Hihat", "626 Open", "Analog Tom", "Bongo Low", "French Hihat"},
+    {"Deep Kick", "Brostep Snare", "DMX Clap", "Dusty Hihat", "Cymbal Open", "Syndrum", "Cowbell", "Bongo High",
+     "Boombap Kick", "Boombap Snare", "Fingersnap", "Afrofunk Hihat", "707 Open", "Brush Tom", "Bongo Low", "Funk Hihat"},
+    {"Crusty Kick", "Brush Snare", "Analog Clap", "Hiphop Hihat", "808 Open", "Electro Tom", "Cabasa", "Conga High",
+     "Big Kick", "Afrobeat Snare", "Clap Trap", "Crisp Hihat", "Bright Open", "Analog Tom", "Cowbell Tight", "French Hihat"}};
 const int presetSampleCounts[] = {16, 16, 16, 16, 16};
 
 // Encoder step size
@@ -56,391 +56,254 @@ bool circleVisible = true;
 ScreenState screenStateRight = SCREEN_RESTING;
 ScreenState screenStateLeft = SCREEN_RESTING;
 
-int previewFolder = 0;	// Initial folder selection for navigation
-int previewSample = 0;	// Initial sample selection for navigation
+int previewFolder = 0;  // Initial folder selection for navigation
+int previewSample = 0;  // Initial sample selection for navigation
 int selectedFolder = 0; // Remember selected folder
 int selectedSample = 0; // Remember selected sample
 
 U8G2_SH1107_PIMORONI_128X128_1_HW_I2C display_1(U8G2_R1, U8X8_PIN_NONE);
 U8G2_SH1107_PIMORONI_128X128_1_HW_I2C display_2(U8G2_R3, U8X8_PIN_NONE);
+
 // Select I2C BUS
-void TCA9548A(uint8_t bus)
-{
-	Wire.beginTransmission(0x70); // TCA9548A address
-	Wire.write(1 << bus);		  // send byte to select bus
-	Wire.endTransmission();
-	Serial.print(bus);
+void TCA9548A(uint8_t bus) {
+    Wire.beginTransmission(0x70); // TCA9548A address
+    Wire.write(1 << bus);         // send byte to select bus
+    Wire.endTransmission();
+    Serial.print(bus);
 }
 
-U8G2_SH1107_PIMORONI_128X128_1_HW_I2C *getScreenFromID(int id)
-{
-	switch (id)
-	{
-	case 1:
-		return &display_1;
-	case 2:
-		return &display_2;
-	default:
-		return &display_1;
-	}
+U8G2_SH1107_PIMORONI_128X128_1_HW_I2C* getScreenFromID(int id) {
+    switch (id) {
+        case 1:
+            return &display_1;
+        case 2:
+            return &display_2;
+        default:
+            return &display_1;
+    }
 }
 
-void drawUI(int screenId, ScreenState screenState)
-{
-	switch (screenState)
-	{
-	case SCREEN_RESTING:
-		// Draw the vertical line and the volume progress bar
-		int lineX = 5;
-		int lineYTop = 5;
-		int lineYBottom = 123;
-		int barWidth = 3;
-		int barX = lineX - 1;
+void drawRestingScreen(int screenId) {
+    int lineX = 5;
+    int lineYTop = 5;
+    int lineYBottom = 123;
+    int barWidth = 3;
+    int barX = lineX - 1;
 
-		getScreenFromID(screenId)->drawLine(lineX, lineYTop, lineX, lineYBottom);
+    getScreenFromID(screenId)->drawLine(lineX, lineYTop, lineX, lineYBottom);
 
-		int totalHeight = lineYBottom - lineYTop;
-		int filledHeight = map(VolumeIn, 0, 119, 0, totalHeight);
-		filledHeight = constrain(filledHeight, 0, 119); // Ensure the height does not exceed 118px
+    int totalHeight = lineYBottom - lineYTop;
+    int filledHeight = map(VolumeIn, 0, 119, 0, totalHeight);
+    filledHeight = constrain(filledHeight, 0, 119);
 
-		getScreenFromID(screenId)->setDrawColor(1);
-		getScreenFromID(screenId)->drawBox(barX, lineYBottom - filledHeight, barWidth, filledHeight);
+    getScreenFromID(screenId)->setDrawColor(1);
+    getScreenFromID(screenId)->drawBox(barX, lineYBottom - filledHeight, barWidth, filledHeight);
 
-		// Draw the blinking circle
-		if (circleVisible)
-		{
-			getScreenFromID(screenId)->drawDisc(20, 15, 2);
-		}
+    if (circleVisible) {
+        getScreenFromID(screenId)->drawDisc(20, 15, 2);
+    }
 
-		// Draw a small bar in the top right corner
-		getScreenFromID(screenId)->drawBox(115, 0, 2, 5); // 10px margin from the right, no margin from the top
+    getScreenFromID(screenId)->drawBox(115, 0, 2, 5);
 
-		getScreenFromID(screenId)->setFont(unibody_8);
-		getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Sample Library"), 18, "Sample Library");
+    getScreenFromID(screenId)->setFont(unibody_8);
+    getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Sample Library"), 18, "Sample Library");
 
-		// Display folder name in full
-		getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth(sampleFolder[selectedFolder]), 128 - 40, sampleFolder[selectedFolder]);
+    getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth(sampleFolder[selectedFolder]), 128 - 40, sampleFolder[selectedFolder]);
 
-		// Truncate sample name if it is longer than 8 characters
-		char displayedSample[12];
-		snprintf(displayedSample, sizeof(displayedSample), "%.6s...", sampleArrays[selectedFolder][selectedSample]);
-		getScreenFromID(screenId)->setFont(unibody_16);
-		getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth(displayedSample), 128 - 20, displayedSample);
-		break;
-	case SCREEN_SAMPLE_LIBRARY_FOLDER:
-		// Draw
-		getScreenFromID(screenId)->setFont(unibody_8);
-		getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Back"), 18, "Back");
-
-		int lineHeight = getScreenFromID(screenId)->getAscent() - getScreenFromID(screenId)->getDescent();
-		int verticalSpacing = 5;
-		int baseY = 128 - 6 * (lineHeight + verticalSpacing);
-
-		for (int i = -1; i <= 4; ++i)
-		{
-			int index = previewFolder + i;
-			if (index >= 0 && index < (sizeof(sampleFolder) / sizeof(sampleFolder[0])))
-			{
-				int y = baseY + (i + 1) * (lineHeight + verticalSpacing);
-				getScreenFromID(screenId)->drawStr(5, y, sampleFolder[index]);
-				if (i == 0)
-				{
-					getScreenFromID(screenId)->drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6);
-				}
-			}
-		}
-
-		// Draw a small bar in the top right corner
-		getScreenFromID(screenId)->drawBox(115, 0, 2, 5); // 10px margin from the right, no margin from the top
-		break;
-	case SCREEN_SAMPLE_LIBRARY_SAMPLES:
-		// Draw
-		getScreenFromID(screenId)->setFont(unibody_8);
-		getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Back"), 18, "Back");
-
-		int lineHeight = getScreenFromID(screenId)->getAscent() - getScreenFromID(screenId)->getDescent();
-		int verticalSpacing = 5;
-		int baseY = 128 - 6 * (lineHeight + verticalSpacing);
-
-		const char **currentSamples = sampleArrays[previewFolder];
-		int sampleCount = sampleCounts[previewFolder];
-
-		for (int i = -1; i <= 4; ++i)
-		{
-			int index = previewSample + i;
-			if (index >= 0 && index < sampleCount)
-			{
-				int y = baseY + (i + 1) * (lineHeight + verticalSpacing);
-				getScreenFromID(screenId)->drawStr(5, y, currentSamples[index]);
-				if (i == 0)
-				{
-					getScreenFromID(screenId)->drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6);
-				}
-			}
-		}
-
-		// Draw a small bar in the top right corner
-		getScreenFromID(screenId)->drawBox(115, 0, 2, 5); // 10px margin from the right, no margin from the top
-		break;
-	case SCREEN_PRESET_LIBRARY_PRESETS:
-		// Draw
-		getScreenFromID(screenId)->setFont(unibody_8);
-		getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Back"), 18, "Back");
-
-		int lineHeight = getScreenFromID(screenId)->getAscent() - getScreenFromID(screenId)->getDescent();
-		int verticalSpacing = 5;
-		int baseY = 128 - 6 * (lineHeight + verticalSpacing);
-
-		for (int i = -1; i <= 4; ++i)
-		{
-			int index = previewFolder + i;
-			if (index >= 0 && index < (sizeof(sampleFolder) / sizeof(sampleFolder[0])))
-			{
-				int y = baseY + (i + 1) * (lineHeight + verticalSpacing);
-				getScreenFromID(screenId)->drawStr(5, y, sampleFolder[index]);
-				if (i == 0)
-				{
-					getScreenFromID(screenId)->drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6);
-				}
-			}
-		}
-
-		// Draw a small bar in the top right corner
-		getScreenFromID(screenId)->drawBox(115, 0, 2, 5); // 10px margin from the right, no margin from the top
-		break;
-	case SCREEN_PRESET_LIBRARY_SAMPLES:
-		// Draw
-		getScreenFromID(screenId)->setFont(unibody_8);
-		getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Back"), 18, "Back");
-
-		int lineHeight = getScreenFromID(screenId)->getAscent() - getScreenFromID(screenId)->getDescent();
-		int verticalSpacing = 5;
-		int baseY = 128 - 6 * (lineHeight + verticalSpacing);
-
-		const char **currentSamples = sampleArrays[previewFolder];
-		int sampleCount = sampleCounts[previewFolder];
-
-		for (int i = -1; i <= 4; ++i)
-		{
-			int index = previewSample + i;
-			if (index >= 0 && index < sampleCount)
-			{
-				int y = baseY + (i + 1) * (lineHeight + verticalSpacing);
-				getScreenFromID(screenId)->drawStr(5, y, currentSamples[index]);
-				if (i == 0)
-				{
-					getScreenFromID(screenId)->drawFrame(0, y - lineHeight - 2, 128, lineHeight + 6);
-				}
-			}
-		}
-
-		// Draw a small bar in the top right corner
-		getScreenFromID(screenId)->drawBox(115, 0, 2, 5); // 10px margin from the right, no margin from the top
-		break;
-	}
+    char displayedSample[12];
+    snprintf(displayedSample, sizeof(displayedSample), "%.6s...", sampleArrays[selectedFolder][selectedSample]);
+    getScreenFromID(screenId)->setFont(unibody_16);
+    getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth(displayedSample), 128 - 20, displayedSample);
 }
 
-void volumeChange()
-{
-	// Volume screen logic
-	int encoderChange = encoder.getCount();
-	if (encoderChange != 0)
-	{
-		VolumeIn += encoderChange * 4;
-		VolumeIn = constrain(VolumeIn, 0, 128); // Constrain volume between 0 and 128
-		encoder.setCount(VolumeIn);				// Keep the encoder in sync with the volume
-		encoder.clearCount();					// Clear encoder change after applying
-	}
+void drawSampleLibraryFolder(int screenId) {
+    getScreenFromID(screenId)->setFont(unibody_8);
+    getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Back"), 18, "Back");
+
+    int lineHeight = getScreenFromID(screenId)->getAscent() - getScreenFromID(screenId)->getDescent();
+    int verticalSpacing = 5;
+    int baseY = 128 - 6 * (lineHeight + verticalSpacing);
+
+    for (int i = -1; i <= 4; ++i) {
+        int index = previewFolder + i;
+        if (index >= 0 && index < (sizeof(sampleFolder) / sizeof(sampleFolder[0]))) {
+            int yPos = baseY + (i + 1) * (lineHeight + verticalSpacing);
+            if (index == previewFolder) {
+                getScreenFromID(screenId)->drawStr(2, yPos, sampleFolder[index]);
+            } else {
+                getScreenFromID(screenId)->drawStr(15, yPos, sampleFolder[index]);
+            }
+        }
+    }
 }
 
-void folderSelection()
-{
-	// Folder selection screen logic
-	int encoderChange = encoder.getCount();
-	if (encoderChange != 0)
-	{
-		int steps = encoderChange / encoderStepSize;
-		previewFolder += steps;
+void drawSampleLibrarySamples(int screenId) {
+    getScreenFromID(screenId)->setFont(unibody_8);
+    getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Back"), 18, "Back");
 
-		// Ensure previewFolder stays within valid range
-		previewFolder = constrain(previewFolder, 0, sizeof(sampleFolder) / sizeof(sampleFolder[0]) - 1);
+    int lineHeight = getScreenFromID(screenId)->getAscent() - getScreenFromID(screenId)->getDescent();
+    int verticalSpacing = 5;
+    int baseY = 128 - 6 * (lineHeight + verticalSpacing);
 
-		// Reset encoder count after processing movement
-		encoder.clearCount();
-	}
+    for (int i = -1; i <= 4; ++i) {
+        int index = previewSample + i;
+        if (index >= 0 && index < sampleCounts[selectedFolder]) {
+            int yPos = baseY + (i + 1) * (lineHeight + verticalSpacing);
+            if (index == previewSample) {
+                getScreenFromID(screenId)->drawStr(2, yPos, sampleArrays[selectedFolder][index]);
+            } else {
+                getScreenFromID(screenId)->drawStr(15, yPos, sampleArrays[selectedFolder][index]);
+            }
+        }
+    }
 }
 
-void sampleSelection()
-{
-	// Sample selection screen logic
-	int encoderChange = encoder.getCount();
-	if (encoderChange != 0)
-	{
-		int steps = encoderChange / encoderStepSize;
-		previewSample += steps;
+void drawPresetLibraryPresets(int screenId) {
+    getScreenFromID(screenId)->setFont(unibody_8);
+    getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Back"), 18, "Back");
 
-		// Ensure previewSample stays within valid range
-		int sampleCount = sampleCounts[previewFolder];
-		previewSample = constrain(previewSample, 0, sampleCount - 1);
+    int lineHeight = getScreenFromID(screenId)->getAscent() - getScreenFromID(screenId)->getDescent();
+    int verticalSpacing = 5;
+    int baseY = 128 - 6 * (lineHeight + verticalSpacing);
 
-		// Reset encoder count after processing movement
-		encoder.clearCount();
-	}
+    for (int i = -1; i <= 4; ++i) {
+        int index = previewPreset + i;
+        if (index >= 0 && index < presetCount) {
+            int yPos = baseY + (i + 1) * (lineHeight + verticalSpacing);
+            if (index == previewPreset) {
+                getScreenFromID(screenId)->drawStr(2, yPos, presetList[index]);
+            } else {
+                getScreenFromID(screenId)->drawStr(15, yPos, presetList[index]);
+            }
+        }
+    }
 }
 
-void presetSelection()
-{
-	// Sample selection screen logic
-	int encoderChange = encoder.getCount();
-	if (encoderChange != 0)
-	{
-		int steps = encoderChange / encoderStepSize;
-		previewSample += steps;
+void drawPresetLibrarySamples(int screenId) {
+    getScreenFromID(screenId)->setFont(unibody_8);
+    getScreenFromID(screenId)->drawStr(128 - 5 - getScreenFromID(screenId)->getStrWidth("Back"), 18, "Back");
 
-		// Ensure previewSample stays within valid range
-		int sampleCount = sampleCounts[previewFolder];
-		previewSample = constrain(previewSample, 0, sampleCount - 1);
+    int lineHeight = getScreenFromID(screenId)->getAscent() - getScreenFromID(screenId)->getDescent();
+    int verticalSpacing = 5;
+    int baseY = 128 - 6 * (lineHeight + verticalSpacing);
 
-		// Reset encoder count after processing movement
-		encoder.clearCount();
-	}
+    for (int i = -1; i <= 4; ++i) {
+        int index = previewPresetSample + i;
+        if (index >= 0 && index < presetSampleCounts[previewPreset]) {
+            int yPos = baseY + (i + 1) * (lineHeight + verticalSpacing);
+            if (index == previewPresetSample) {
+                getScreenFromID(screenId)->drawStr(2, yPos, presetSamples[previewPreset][index]);
+            } else {
+                getScreenFromID(screenId)->drawStr(15, yPos, presetSamples[previewPreset][index]);
+            }
+        }
+    }
 }
 
-void blinkingCircle()
-{
-	// Handle blinking circle
-	unsigned long currentMillis = millis();
-	if (currentMillis - previousMillis >= interval)
-	{
-		previousMillis = currentMillis;
-		circleVisible = !circleVisible;
-	}
+void drawScreen(int screenId) {
+    getScreenFromID(screenId)->firstPage();
+    do {
+        switch (screenId) {
+            case 1:
+                switch (screenStateRight) {
+                    case SCREEN_SAMPLE_LIBRARY_FOLDER:
+                        drawSampleLibraryFolder(screenId);
+                        break;
+                    case SCREEN_SAMPLE_LIBRARY_SAMPLES:
+                        drawSampleLibrarySamples(screenId);
+                        break;
+                    case SCREEN_PRESET_LIBRARY_PRESETS:
+                        drawPresetLibraryPresets(screenId);
+                        break;
+                    case SCREEN_PRESET_LIBRARY_SAMPLES:
+                        drawPresetLibrarySamples(screenId);
+                        break;
+                    default:
+                        drawRestingScreen(screenId);
+                        break;
+                }
+                break;
+            case 2:
+                switch (screenStateLeft) {
+                    case SCREEN_SAMPLE_LIBRARY_FOLDER:
+                        drawSampleLibraryFolder(screenId);
+                        break;
+                    case SCREEN_SAMPLE_LIBRARY_SAMPLES:
+                        drawSampleLibrarySamples(screenId);
+                        break;
+                    case SCREEN_PRESET_LIBRARY_PRESETS:
+                        drawPresetLibraryPresets(screenId);
+                        break;
+                    case SCREEN_PRESET_LIBRARY_SAMPLES:
+                        drawPresetLibrarySamples(screenId);
+                        break;
+                    default:
+                        drawRestingScreen(screenId);
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
+    } while (getScreenFromID(screenId)->nextPage());
 }
 
-void screenSetup()
-{
-	// Init OLED display on bus number 0
-	TCA9548A(0);
-	if (!display_1.begin())
-	{
-		Serial.println(F("OLED allocation failed"));
-		for (;;)
-			;
-	}
-	Serial.println("Display 1 initialized");
+void screenSetup() {
+    ESP32Encoder::useInternalWeakPullResistors = puType::up;
+    encoder.attachHalfQuad(19, 18);
+    encoder.clearCount();
 
-	// Init OLED display on bus number 1
-	TCA9548A(1);
-	if (!display_2.begin())
-	{
-		Serial.println(F("OLED allocation failed"));
-		for (;;)
-			;
-	}
-	Serial.println("Display 2 initialized");
+    Wire.begin(21, 22);
 
-	ESP32Encoder::useInternalWeakPullResistors = puType::up;
+    TCA9548A(0);
+    display_1.begin();
+    display_1.setFlipMode(1);
+    display_1.setFont(unibody_8);
 
-	encoder.attachHalfQuad(ENCODER_DT, ENCODER_CLK);
-	encoder.clearCount();
+    TCA9548A(1);
+    display_2.begin();
+    display_2.setFlipMode(1);
+    display_2.setFont(unibody_8);
 
-	pinMode(ENCODER_SW, INPUT_PULLUP);
-	pinMode(SAMPLE_A, INPUT_PULLUP);
-	pinMode(SAMPLE_B, INPUT_PULLUP);
-
-	// Initialize encoder with the current volume
-	encoder.setCount(VolumeIn);
+    encoderStepSize = 2; // Set step size for encoder
 }
 
-void screenLoop()
-{
-	// // Handle button press to toggle between screens
-	// if (debounceButton(9, mcp->digitalRead(SAMPLE_A)))
-	// {
-	// 	// Safety check to prevent switching screens while the other screen is active
-	// 	if (screenStateRight != = SCREEN_RESTING)
-	// 	{
-	// 		return;
-	// 	}
+void updateEncoder() {
+    static int lastEncoderValue = 0;
+    int newValue = encoder.getCount();
+    if (newValue != lastEncoderValue) {
+        int delta = (newValue - lastEncoderValue) / encoderStepSize;
+        switch (screenStateRight) {
+            case SCREEN_SAMPLE_LIBRARY_FOLDER:
+                previewFolder = constrain(previewFolder + delta, 0, (sizeof(sampleFolder) / sizeof(sampleFolder[0])) - 1);
+                break;
+            case SCREEN_SAMPLE_LIBRARY_SAMPLES:
+                previewSample = constrain(previewSample + delta, 0, sampleCounts[selectedFolder] - 1);
+                break;
+            case SCREEN_PRESET_LIBRARY_PRESETS:
+                previewPreset = constrain(previewPreset + delta, 0, presetCount - 1);
+                break;
+            case SCREEN_PRESET_LIBRARY_SAMPLES:
+                previewPresetSample = constrain(previewPresetSample + delta, 0, presetSampleCounts[previewPreset] - 1);
+                break;
+            default:
+                break;
+        }
+        lastEncoderValue = newValue;
+    }
+}
 
-	// 	if (screenStateLeft == SCREEN_RESTING)
-	// 	{
-	// 		screenStateLeft = SCREEN_SAMPLE_LIBRARY_FOLDER;
-	// 		encoder.clearCount(); // Clear encoder count when switching screens
-	// 	}
-	// 	else if (screenStateLeft == SCREEN_SAMPLE_LIBRARY_FOLDER)
-	// 	{
-	// 		screenStateLeft = SCREEN_RESTING;
-	// 		encoder.setCount(VolumeIn); // Ensure encoder reflects the current volume
-	// 	}
-	// 	else if (screenStateLeft == SCREEN_SAMPLE_LIBRARY_SAMPLES)
-	// 	{
-	// 		screenStateLeft = SCREEN_SAMPLE_LIBRARY_FOLDER;
-	// 		encoder.clearCount(); // Clear encoder count when switching screens
-	// 	}
-	// }
+void screenLoop() {
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval) {
+        previousMillis = currentMillis;
+        circleVisible = !circleVisible;
+    }
+    updateEncoder();
 
-	// // Handle encoder button press for sample selection and switch back to volume screen
-	// if (digitalRead(ENCODER_SW) == LOW)
-	// {
-	// 	if (screenStateLeft == SCREEN_SAMPLE_LIBRARY_FOLDER)
-	// 	{
-	// 		// Move to sample list screen
-	// 		screenStateLeft = SCREEN_SAMPLE_LIBRARY_SAMPLES;
-	// 		encoder.clearCount();
-	// 	}
-	// 	else if (screenStateRight == SCREEN_SAMPLE_LIBRARY_FOLDER)
-	// 	{
-	// 		// Move to sample list screen
-	// 		screenStateRight = SCREEN_SAMPLE_LIBRARY_SAMPLES;
-	// 		encoder.clearCount();
-	// 	}
-	// 	else if (screenStateLeft == SCREEN_SAMPLE_LIBRARY_SAMPLES)
-	// 	{
-	// 		// Confirm selection and switch back to volume screen
-	// 		screenStateLeft = SCREEN_RESTING;
-	// 		selectedFolder = previewFolder; // Store selected folder
-	// 		selectedSample = previewSample; // Store selected sample
-	// 		encoder.setCount(VolumeIn);		// Ensure encoder reflects the current volume
-	// 		delay(300);						// Debounce delay
-	// 	}
-	// 	else if (screenStateRight == SCREEN_SAMPLE_LIBRARY_SAMPLES)
-	// 	{
-	// 		// Confirm selection and switch back to volume screen
-	// 		screenStateRight = SCREEN_RESTING;
-	// 		selectedFolder = previewFolder; // Store selected folder
-	// 		selectedSample = previewSample; // Store selected sample
-	// 		encoder.setCount(VolumeIn);		// Ensure encoder reflects the current volume
-	// 		delay(300);						// Debounce delay
-	// 	}
-	// }
+    TCA9548A(0);
+    drawScreen(1);
 
-	// ___SCREENS___
-	if (screenStateLeft == SCREEN_RESTING && screenStateRight == SCREEN_RESTING)
-	{
-		// Volume screen logic
-		volumeChange();
-	}
-	else if (screenStateLeft == SCREEN_SAMPLE_LIBRARY_FOLDER || screenStateRight == SCREEN_SAMPLE_LIBRARY_FOLDER)
-	{
-		// Folder selection screen logic
-		folderSelection();
-	}
-	else if (screenStateLeft == SCREEN_SAMPLE_LIBRARY_SAMPLES || screenStateLeft == SCREEN_SAMPLE_LIBRARY_SAMPLES)
-	{
-		// Sample selection screen logic
-		sampleSelection();
-	}
-
-	// Handle blinking circle
-	blinkingCircle();
-
-	// Render the display based on screen state and update condition
-	getScreenFromID(0)->firstPage();
-	getScreenFromID(1)->firstPage();
-	do
-	{
-		drawUI(0, screenStateLeft);
-		drawUI(1, screenStateRight);
-	} while (getScreenFromID(0)->nextPage());
+    TCA9548A(1);
+    drawScreen(2);
 }
