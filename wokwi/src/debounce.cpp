@@ -1,9 +1,9 @@
 #include "debounce.h"
 
-const int debounceDelay = 50;			 // milliseconds
-unsigned long lastDebounceTime[8] = {0}; // Array to store the last debounce time for each button
-bool lastButtonState[8] = {HIGH};		 // Array to store the last button state
-bool buttonState[8] = {HIGH};			 // Array to store the current button state
+const int debounceDelay = 50;			  // milliseconds
+unsigned long lastDebounceTime[10] = {0}; // Array to store the last debounce time for each button
+bool lastButtonState[10] = {HIGH};		  // Array to store the last button state
+bool buttonState[10] = {HIGH};			  // Array to store the current button state
 
 bool debounceButton(int index, bool currentState)
 {

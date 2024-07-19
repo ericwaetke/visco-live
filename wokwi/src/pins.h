@@ -9,11 +9,17 @@
 #define FADER_REVERSE 2
 #define FADER_SPEED 42
 
+#define ENCODER_DT 41
+#define ENCODER_CLK 41
+#define ENCODER_SW 41
+
 // MCP Other
 #define LED_MUTE 7
 #define BUTTON_MUTE 6
 #define LED_SOLO 5
 #define BUTTON_SOLO 4
+#define SAMPLE_A 3
+#define SAMPLE_B 2
 
 // MCP 0
 #define TRACK_1_LED_MUTE 0
